@@ -70,13 +70,13 @@ def fetch_forex_alpha(from_currency="USD", to_currency="IDR"):
         st.toast(f"⚠️ Gagal menarik API. Menggunakan data CSV lokal untuk {from_currency}.")
         return load_local_fallback(from_currency)
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
 def load_usd(): return fetch_forex_alpha("USD", "IDR")
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
 def load_eur(): return fetch_forex_alpha("EUR", "IDR")
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
 def load_gbp(): return fetch_forex_alpha("GBP", "IDR")
 
 # ==========================================
