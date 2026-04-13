@@ -6,6 +6,7 @@ import streamlit as st
 import numpy as np
 import requests
 import os
+import logging # Tambahan untuk logging error ke terminal
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -22,26 +23,30 @@ custom_bd = CustomBusinessDay(holidays=holiday_dates)
 def load_local_fallback(currency_symbol):
     """Fungsi pembantu membaca data CSV lokal secara diam-diam jika API gagal."""
     file_map = {"USD": "data/usd_idr.csv", "EUR": "data/eur_idr.csv", "GBP": "data/gbp_idr.csv"}
-    df = pd.read_csv(file_map[currency_symbol])
-    
-    col_date = df.columns[0]
-    col_close = df.columns[1]
-    col_open = df.columns[2]
-    col_high = df.columns[3]
-    col_low = df.columns[4]
-    
-    df = df.rename(columns={col_date: "Date", col_close: "Close Price", col_open: "Open", col_high: "High", col_low: "Low"})
-    df["Date"] = pd.to_datetime(df["Date"], errors='coerce', format='mixed').dt.tz_localize(None)
-    df = df.dropna(subset=['Date'])
-    df = df.set_index("Date").sort_index()
-    
-    for col in ["Open", "High", "Low", "Close Price"]:
-        if col in df.columns and df[col].dtype == object:
-            df[col] = df[col].astype(str).str.replace(',', '', regex=False).astype(float)
-    return df[["Open", "High", "Low", "Close Price"]]
+    try:
+        df = pd.read_csv(file_map[currency_symbol])
+        
+        col_date = df.columns[0]
+        col_close = df.columns[1]
+        col_open = df.columns[2]
+        col_high = df.columns[3]
+        col_low = df.columns[4]
+        
+        df = df.rename(columns={col_date: "Date", col_close: "Close Price", col_open: "Open", col_high: "High", col_low: "Low"})
+        df["Date"] = pd.to_datetime(df["Date"], errors='coerce', format='mixed').dt.tz_localize(None)
+        df = df.dropna(subset=['Date'])
+        df = df.set_index("Date").sort_index()
+        
+        for col in ["Open", "High", "Low", "Close Price"]:
+            if col in df.columns and df[col].dtype == object:
+                df[col] = df[col].astype(str).str.replace(',', '', regex=False).astype(float)
+        return df[["Open", "High", "Low", "Close Price"]]
+    except Exception as e:
+        logging.error(f"Gagal memuat file lokal untuk {currency_symbol}: {e}")
+        return pd.DataFrame()
 
 # ==========================================
-# PENARIKAN API UTAMA DENGAN FALLBACK
+# PENARIKAN API UTAMA DENGAN FALLBACK (BERSIH DARI ST)
 # ==========================================
 def fetch_forex_alpha(from_currency="USD", to_currency="IDR"):
     url = "https://www.alphavantage.co/query"
@@ -50,11 +55,16 @@ def fetch_forex_alpha(from_currency="USD", to_currency="IDR"):
     try:
         response = requests.get(url, params=params)
         data = response.json()
+        
+        # Cek API Limit atau Error Message dari Alpha Vantage
+        if "Note" in data or "Information" in data:
+            logging.warning(f"API Limit tercapai untuk {from_currency}. Menggunakan data lokal.")
+            return load_local_fallback(from_currency)
+
         time_series = data.get("Time Series FX (Daily)", {})
         
-        # JIKA KENA LIMIT API
         if not time_series:
-            st.toast(f"⚠️ API Limit tercapai! Menggunakan data CSV lokal untuk {from_currency}.")
+            logging.warning(f"Data tidak ditemukan untuk {from_currency}. Menggunakan data lokal.")
             return load_local_fallback(from_currency)
 
         # JIKA BERHASIL DAPAT DATA FRESH
@@ -65,19 +75,24 @@ def fetch_forex_alpha(from_currency="USD", to_currency="IDR"):
         df = df.astype(float)
         return df.sort_index()
         
-    except Exception:
-        # JIKA TIDAK ADA INTERNET ATAU ERROR LAIN
-        st.toast(f"⚠️ Gagal menarik API. Menggunakan data CSV lokal untuk {from_currency}.")
+    except Exception as e:
+        logging.error(f"Network error/Exception: {e}. Menggunakan data lokal untuk {from_currency}.")
         return load_local_fallback(from_currency)
 
-# @st.cache_data(ttl=3600)
-def load_usd(): return fetch_forex_alpha("USD", "IDR")
+# ==========================================
+# WRAPPER CACHE (BERSIH DARI ST)
+# ==========================================
+@st.cache_data(ttl=3600)
+def load_usd(): 
+    return fetch_forex_alpha("USD", "IDR")
 
-# @st.cache_data(ttl=3600)
-def load_eur(): return fetch_forex_alpha("EUR", "IDR")
+@st.cache_data(ttl=3600)
+def load_eur(): 
+    return fetch_forex_alpha("EUR", "IDR")
 
-# @st.cache_data(ttl=3600)
-def load_gbp(): return fetch_forex_alpha("GBP", "IDR")
+@st.cache_data(ttl=3600)
+def load_gbp(): 
+    return fetch_forex_alpha("GBP", "IDR")
 
 # ==========================================
 # BACA EKSOGEN DARI CSV LOKAL
