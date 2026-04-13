@@ -104,11 +104,11 @@ def append_forex_csv(base_curr, df_raw):
         return
 
     # Ambil baris data paling terakhir (terbaru) dari hasil tarikan API
-    latest_date = df_raw.index[-1].strftime('%m/%d/%Y')
-    close_p = int(df_raw['Close Price'].iloc[-1])
-    open_p = int(df_raw['Open'].iloc[-1])
-    high_p = int(df_raw['High'].iloc[-1])
-    low_p = int(df_raw['Low'].iloc[-1])
+    latest_date = df_raw.index[-1].strftime('%Y-%m-%d')
+    close_p = df_raw['Close Price'].iloc[-1]
+    open_p = df_raw['Open'].iloc[-1]
+    high_p = df_raw['High'].iloc[-1]
+    low_p = df_raw['Low'].iloc[-1]
     
     # Buka CSV untuk membaca baris paling bawah
     with open(file_path, 'r', encoding='utf-8') as f:
