@@ -129,61 +129,97 @@ def create_local_features(df):
     df_feat["HL_Spread"] = df_feat["High"] - df_feat["Low"]
     return df_feat
 
-def run_initial_training(currency_list=["USD/IDR", "EUR/IDR", "GBP/IDR"]):
-    print("🚀 Memulai Initial Training (Murni dari folder data/)...")
-    
-    print("📥 Menarik data eksogen (Inflasi & BI Rate)...")
+def run_initial_training(
+    currency_list=["USD/IDR", "EUR/IDR", "GBP/IDR"]
+):
+    print("🚀 Memulai Initial Training (Baseline + Tuned)...")
+
+    # =========================
+    # LOAD EXOGEN
+    # =========================
+    print("\n📥 Menarik data eksogen (Inflasi & BI Rate)...")
     exog_data = load_local_exog()
     print(f"✅ Data Eksogen berhasil dimuat: {len(exog_data)} baris.")
-    
+
+    # =========================
+    # LOOP PER CURRENCY
+    # =========================
     for currency in currency_list:
-        print(f"\n=========================================")
+        print("\n=========================================")
         print(f"🔄 Memproses model: {currency}")
-        print(f"=========================================")
-        
-        df_raw = load_local_forex(currency)
-        
-        ten_years_ago = datetime.now() - pd.DateOffset(years=10)
-        df_raw = df_raw.loc[df_raw.index >= ten_years_ago]
-        print(f"✅ Data Forex dipotong dari: {df_raw.index.min().strftime('%Y-%m-%d')} s/d {df_raw.index.max().strftime('%Y-%m-%d')}")
-        
-        df_features = create_local_features(df_raw)
-        df_merged = df_features.join(exog_data, how="inner").dropna()
-        
-        print(f"✅ Baris data siap latih setelah digabung: {len(df_merged)} baris.")
-        
-        # Guard clause jika data masih kosong
-        if len(df_merged) == 0:
-            print(f"❌ ERROR: Data {currency} kosong setelah digabung! Lewati ke mata uang berikutnya.")
+        print("=========================================")
+
+        try:
+            # =========================
+            # LOAD DATA
+            # =========================
+            df_raw = load_local_forex(currency)
+
+            ten_years_ago = datetime.now() - pd.DateOffset(years=10)
+            df_raw = df_raw.loc[df_raw.index >= ten_years_ago]
+
+            print(f"✅ Data Forex: {df_raw.index.min().strftime('%Y-%m-%d')} → {df_raw.index.max().strftime('%Y-%m-%d')}")
+
+            # =========================
+            # FEATURE
+            # =========================
+            df_features = create_local_features(df_raw)
+            df_merged = df_features.join(exog_data, how="inner").dropna()
+
+            print(f"✅ Data siap latih: {len(df_merged)} baris")
+
+            if df_merged.empty:
+                print(f"❌ Data kosong. Skip.")
+                continue
+
+            df_train = df_merged[['Close Price']]
+            exog_train = df_merged[
+                ['Open_lag1','High_lag1','Low_lag1',
+                 'Close_lag1','Return','HL_Spread',
+                 'Inflasi','BI Rate']
+            ]
+
+            param_map = {
+                "USD/IDR": (0, 1, 2),
+                "EUR/IDR": (1, 1, 2),
+                "GBP/IDR": (1, 1, 1)
+            }
+            p, d, q = param_map.get(currency, (1,1,1))
+
+            # ==========================================
+            # 🔥 LOOP MODE DI SINI (KUNCI UTAMA)
+            # ==========================================
+            for mode in ["baseline", "tuned"]:
+                print(f"\n🧠 MODE: {mode.upper()}")
+
+                manager = ModelManager(currency, mode=mode)
+
+                manager.arima = ForexARIMA(p=p, d=d, q=q)
+                manager.lstm = ForexLSTM(sequence_length=30)
+                manager.hybrid = ForexHybrid(p=p, d=d, q=q, sequence_length=30)
+
+                if mode == "tuned":
+                    print("   -> Training TUNED models...")
+                    manager.arima.tune_and_train(df_train, exog_train)
+                    manager.lstm.tune_and_train(df_train, exog_train, max_trials=10, epochs=30)
+                    manager.hybrid.tune_and_train(df_train, exog_train)
+
+                else:
+                    print("   -> Training BASELINE models...")
+                    manager.arima.train_initial(df_train, exog_train)
+                    manager.lstm.train_initial(df_train, exog_train, epochs=30)
+                    manager.hybrid.train_initial(df_train, exog_train)
+
+                print(f"💾 Save ke saved_models/{currency.replace('/', '_')}/{mode}")
+                manager.save_all_models()
+
+                print(f"✅ Done {currency} ({mode})")
+
+        except Exception as e:
+            print(f"❌ ERROR {currency}: {e}")
             continue
 
-        df_train = df_merged[['Close Price']]
-        exog_train = df_merged[['Open_lag1', 'High_lag1', 'Low_lag1', 'Close_lag1', 'Return', 'HL_Spread', 'Inflasi', 'BI Rate']]
-        
-        if currency == "USD/IDR": p, d, q = 0, 1, 2
-        elif currency == "EUR/IDR": p, d, q = 1, 1, 2
-        else: p, d, q = 1, 1, 1
-
-        # --- CARI BAGIAN INI DI train_initial.py DAN UBAH ---
-        
-        manager = ModelManager(currency)
-        manager.arima = ForexARIMA(p=p, d=d, q=q)
-        manager.lstm = ForexLSTM(sequence_length=30)
-        manager.hybrid = ForexHybrid(p=p, d=d, q=q, sequence_length=30)
-        
-        print("🧠 1/3 Auto-Tuning & Training ARIMA Base Model...")
-        manager.arima.tune_and_train(df_train, exog_train)
-        
-        print("🧠 2/3 Auto-Tuning & Training LSTM Neural Network (Bisa ditinggal bikin kopi!)...")
-        manager.lstm.tune_and_train(df_train, exog_train, max_trials=5, epochs=30, batch_size=32)
-        
-        print("🧠 3/3 Auto-Tuning & Training Hybrid Model (Sekuensial)...")
-        manager.hybrid.tune_and_train(df_train, exog_train)
-        
-        print(f"💾 Menyimpan model berkinerja tinggi ke folder saved_models/{currency.replace('/', '_')} ...")
-        manager.save_all_models()
-        
-    print("\n🎉 SEMUA MODEL BERHASIL DILATIH DAN DISIMPAN!")
+    print("\n🎉 Semua model (baseline + tuned) berhasil dibuat!")
 
 if __name__ == "__main__":
     run_initial_training()

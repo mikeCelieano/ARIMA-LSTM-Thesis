@@ -21,6 +21,18 @@ selected_model = st.sidebar.selectbox(
     ["ARIMA-LSTM Hybrid", "ARIMA", "LSTM"]
 )
 
+st.sidebar.markdown("### 🧠 Mode Model")
+model_mode = st.sidebar.radio(
+    "Pilih jenis model:",
+    ["Tuning", "Non-Tuning"]
+)
+
+# ⬇️ TARO DI SINI
+mode_map = {
+    "Tuning": "tuned",
+    "Non-Tuning": "baseline"
+}
+
 n_days = choose_sidebar_plot_range()
 
 if st.session_state.current_currency != currency:
@@ -49,7 +61,7 @@ if st.sidebar.button("🔮 Mulai Analisis"):
             df_inference, exog_inference = prepare_inference_data(df)
             
             # 2. Panggil Model Manager (Memuat file .pkl dan .keras)
-            manager = ModelManager(currency)
+            manager = ModelManager(currency, mode=mode_map[model_mode])
             is_loaded = manager.load_all_models()
             
             if not is_loaded:
@@ -110,10 +122,41 @@ else:
         df_inf, exog_inf = prepare_inference_data(df)
         
         # Eksekusi caching perhitungan backtest
-        eval_metrics_dynamic = get_dynamic_metrics(currency, df_inf, exog_inf, test_days=30)
+        eval_metrics_dynamic = get_dynamic_metrics(
+            currency,
+            df_inf,
+            exog_inf,
+            mode=mode_map[model_mode],
+            model_name=selected_model,
+            test_days=30
+        )
         
         # Tampilkan tabel komparasi
         if eval_metrics_dynamic:
-            display_side_by_side_metrics(eval_metrics_dynamic)
+            # display_side_by_side_metrics(eval_metrics_dynamic)
+            metrics = eval_metrics_dynamic[selected_model]
+
+            st.write("")
+            col1, col2, col3, col4 = st.columns(4)
+
+            col1.metric(
+                label="MAE",
+                value=f"{metrics['MAE']:.4f}"
+            )
+
+            col2.metric(
+                label="RMSE",
+                value=f"{metrics['RMSE']:.4f}"
+            )
+
+            col3.metric(
+                label="MAPE (%)",
+                value=f"{metrics['MAPE']:.2f}%"
+            )
+
+            col4.metric(
+                label="CI Coverage",
+                value=f"{metrics['CI Coverage']:.2f}%"
+            )
         else:
             st.error("Gagal memuat metrik evaluasi. Pastikan model sudah di-training.")

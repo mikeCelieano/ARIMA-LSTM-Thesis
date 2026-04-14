@@ -12,34 +12,35 @@ class ModelManager:
     Manajer terpusat untuk load model, prediksi, dan menyimpan model.
     Dioptimalkan agar Streamlit bisa memanggil model dengan cepat.
     """
-    def __init__(self, currency, base_path="saved_models/"):
+
+    def __init__(self, currency, mode="tuned", base_path="saved_models/"):
         self.currency = currency.replace("/", "_")
-        self.model_dir = os.path.join(base_path, self.currency)
+        self.mode = mode.lower()  # "tuned" / "baseline"
+        
+        self.model_dir = os.path.join(base_path, self.currency, self.mode)
         os.makedirs(self.model_dir, exist_ok=True)
         
-        # Inisialisasi placeholder model
         self.arima = None
         self.lstm = None
         self.hybrid = None
 
     def load_all_models(self):
-        """Memuat ketiga model dari disk (dipanggil oleh Streamlit UI)"""
         try:
-            # Load ARIMA
+            print(f"📂 Loading models from: {self.model_dir}")
+
             self.arima = joblib.load(os.path.join(self.model_dir, "arima.pkl"))
-            
-            # Load LSTM beserta kedua Scaler-nya (Ini yang tadi kurang!)
+
             self.lstm = ForexLSTM.load(
                 os.path.join(self.model_dir, "lstm.keras"),
                 os.path.join(self.model_dir, "scaler_x.pkl"),
                 os.path.join(self.model_dir, "scaler_y.pkl")
             )
-            
-            # Load Hybrid
+
             self.hybrid = joblib.load(os.path.join(self.model_dir, "hybrid.pkl"))
-            
+
             return True
         except FileNotFoundError:
+            print(f"❌ Model tidak ditemukan di {self.model_dir}")
             return False
 
     def predict_all(self, df_recent, exog_recent):

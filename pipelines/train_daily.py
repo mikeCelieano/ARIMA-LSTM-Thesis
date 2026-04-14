@@ -183,7 +183,7 @@ def run_daily_retraining(currency_list=["USD/IDR", "EUR/IDR", "GBP/IDR"]):
             print(latest_exog.to_string())
             print("========================================================\n")
             
-            manager = ModelManager(currency)
+            manager = ModelManager(currency, mode="tuned")
             if not manager.load_all_models():
                 print(f"⚠️ Model untuk {currency} belum ada. Lewati update harian.")
                 continue
