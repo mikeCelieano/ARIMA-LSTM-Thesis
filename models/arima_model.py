@@ -62,18 +62,39 @@ class ForexARIMA:
 
         return self.model_fit
 
-    def append_data(self, new_df, new_exog):
-        if self.model_fit is None:
-            raise ValueError("Model belum diinisialisasi.")
+    def append_data(self, new_y, new_X):
+        """
+        Menambahkan data baru ke model ARIMA yang sudah dilatih.
+        Dilengkapi dengan penanganan error index dan pencegahan duplikasi data.
+        """
+        # 1. CEK DUPLIKASI: Mencegah error jika data di hari yang sama di-train ulang
+        try:
+            last_date = self.model_fit.data.row_labels[-1]
+            new_date = new_y.index[0]
+            if hasattr(last_date, 'date') and hasattr(new_date, 'date'):
+                if new_date <= last_date:
+                    print(f"   ⏭️ [ARIMA] Skip append! Data tanggal {new_date.date()} sudah ada di model (Last: {last_date.date()}).")
+                    return
+        except Exception:
+            pass # Lewati pengecekan jika index bukan datetime
 
-        y_new, exog_new = self._prepare_data(new_df, new_exog)
-
-        # 🔴 penting: jangan refit tiap step
-        self.model_fit = self.model_fit.append(
-            endog=y_new,
-            exog=exog_new,
-            refit=False
-        )
+        # 2. COBA APPEND NORMAL
+        try:
+            self.model_fit = self.model_fit.append(endog=new_y, exog=new_X, refit=False)
+            
+        except ValueError as e:
+            # 3. FALLBACK: Copot index Pandas jadi murni Numpy Array
+            print(f"   ⚠️ [ARIMA] Konflik index Pandas terdeteksi. Memaksa append via Numpy Array...")
+            try:
+                # np.asarray() membuang index Datetime dari pandas, sehingga statsmodels
+                # akan mengabaikan validasi tanggal dan otomatis melanjutkannya ke n+1
+                y_array = np.asarray(new_y).flatten()
+                X_array = np.asarray(new_X)
+                
+                self.model_fit = self.model_fit.append(endog=y_array, exog=X_array, refit=False)
+            except Exception as e2:
+                print(f"   ❌ [ARIMA] Fallback tetap gagal: {e2}")
+                raise e2
 
     def forecast(self, df_recent, exog_recent, steps=1):
         if self.model_fit is None:

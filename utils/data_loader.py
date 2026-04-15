@@ -17,9 +17,6 @@ id_holidays = holidays.Indonesia(years=years)
 holiday_dates = pd.to_datetime(list(id_holidays.keys()))
 custom_bd = CustomBusinessDay(holidays=holiday_dates)
 
-# ==========================================
-# FUNGSI FALLBACK (JIKA API LIMIT HABIS)
-# ==========================================
 def load_local_fallback(currency_symbol):
     """Fungsi pembantu membaca data CSV lokal secara diam-diam jika API gagal."""
     file_map = {"USD": "data/usd_idr.csv", "EUR": "data/eur_idr.csv", "GBP": "data/gbp_idr.csv"}
@@ -45,43 +42,89 @@ def load_local_fallback(currency_symbol):
         logging.error(f"Gagal memuat file lokal untuk {currency_symbol}: {e}")
         return pd.DataFrame()
 
-# ==========================================
-# PENARIKAN API UTAMA DENGAN FALLBACK (BERSIH DARI ST)
-# ==========================================
-def fetch_forex_alpha(from_currency="USD", to_currency="IDR"):
-    url = "https://www.alphavantage.co/query"
-    params = {"function": "FX_DAILY", "from_symbol": from_currency, "to_symbol": to_currency, "apikey": API_KEY, "outputsize": "full"}
+# def fetch_forex_alpha(from_currency="USD", to_currency="IDR"):
+#     url = "https://www.alphavantage.co/query"
+#     params = {"function": "FX_DAILY", "from_symbol": from_currency, "to_symbol": to_currency, "apikey": API_KEY, "outputsize": "full"}
+
+#     try:
+#         response = requests.get(url, params=params)
+#         data = response.json()
+        
+#         # Cek API Limit atau Error Message dari Alpha Vantage
+#         if "Note" in data or "Information" in data:
+#             logging.warning(f"API Limit tercapai untuk {from_currency}. Menggunakan data lokal.")
+#             return load_local_fallback(from_currency)
+
+#         time_series = data.get("Time Series FX (Daily)", {})
+        
+#         if not time_series:
+#             logging.warning(f"Data tidak ditemukan untuk {from_currency}. Menggunakan data lokal.")
+#             return load_local_fallback(from_currency)
+
+#         # JIKA BERHASIL DAPAT DATA FRESH
+#         df = pd.DataFrame.from_dict(time_series, orient="index")
+#         df = df.rename(columns={"1. open": "Open", "2. high": "High", "3. low": "Low", "4. close": "Close Price"})
+#         df = df[["Open", "High", "Low", "Close Price"]]
+#         df.index = pd.to_datetime(df.index).tz_localize(None)
+#         df = df.astype(float)
+#         return df.sort_index()
+        
+#     except Exception as e:
+#         logging.error(f"Network error/Exception: {e}. Menggunakan data lokal untuk {from_currency}.")
+#         return load_local_fallback(from_currency)
+
+def fetch_forex_investing(base_curr):
+    """
+    Fungsi pengganti Alpha Vantage.
+    Sekarang sudah termasuk kolom Change % untuk keperluan visualisasi.
+    """
+    file_map = {
+        "USD": "data/usd_idr.csv", 
+        "EUR": "data/eur_idr.csv", 
+        "GBP": "data/gbp_idr.csv"
+    }
+    file_path = file_map.get(base_curr)
+    
+    if not file_path or not os.path.exists(file_path):
+        logging.error(f"File {file_path} tidak ditemukan.")
+        return load_local_fallback(base_curr)
 
     try:
-        response = requests.get(url, params=params)
-        data = response.json()
+        df = pd.read_csv(file_path)
         
-        # Cek API Limit atau Error Message dari Alpha Vantage
-        if "Note" in data or "Information" in data:
-            logging.warning(f"API Limit tercapai untuk {from_currency}. Menggunakan data lokal.")
-            return load_local_fallback(from_currency)
-
-        time_series = data.get("Time Series FX (Daily)", {})
+        # 1. Konversi Tanggal
+        df["Date"] = pd.to_datetime(df["Date"], format="%m/%d/%Y", errors='coerce').dt.tz_localize(None)
+        df = df.dropna(subset=['Date']).set_index("Date").sort_index()
         
-        if not time_series:
-            logging.warning(f"Data tidak ditemukan untuk {from_currency}. Menggunakan data lokal.")
-            return load_local_fallback(from_currency)
-
-        # JIKA BERHASIL DAPAT DATA FRESH
-        df = pd.DataFrame.from_dict(time_series, orient="index")
-        df = df.rename(columns={"1. open": "Open", "2. high": "High", "3. low": "Low", "4. close": "Close Price"})
-        df = df[["Open", "High", "Low", "Close Price"]]
-        df.index = pd.to_datetime(df.index).tz_localize(None)
-        df = df.astype(float)
-        return df.sort_index()
+        # 2. Membersihkan angka (Open, High, Low, Price)
+        target_cols = ["Price", "Open", "High", "Low"]
+        for col in target_cols:
+            if col in df.columns:
+                df[col] = (
+                    df[col].astype(str)
+                    .str.replace(',', '', regex=False)
+                    .astype(float)
+                )
+        
+        # 3. Membersihkan Change % (Contoh: "+0.15%" -> 0.15)
+        if "Change %" in df.columns:
+            df["Change %"] = (
+                df["Change %"].astype(str)
+                .str.replace('%', '', regex=False)
+                .str.replace('+', '', regex=False)
+                .astype(float)
+            )
+        
+        # 4. Standarisasi Nama Kolom
+        df = df.rename(columns={"Price": "Close Price"})
+        
+        # Sekarang kita return 5 kolom!
+        return df[["Open", "High", "Low", "Close Price", "Change %"]]
         
     except Exception as e:
-        logging.error(f"Network error/Exception: {e}. Menggunakan data lokal untuk {from_currency}.")
-        return load_local_fallback(from_currency)
+        logging.error(f"Gagal memproses file {file_path}: {e}")
+        return load_local_fallback(base_curr)
 
-# ==========================================
-# WRAPPER CACHE (BERSIH DARI ST)
-# ==========================================
 @st.cache_data(ttl=3600)
 def load_usd(): 
     return fetch_forex_alpha("USD", "IDR")
@@ -94,9 +137,6 @@ def load_eur():
 def load_gbp(): 
     return fetch_forex_alpha("GBP", "IDR")
 
-# ==========================================
-# BACA EKSOGEN DARI CSV LOKAL
-# ==========================================
 def exog_birate():
     bulan_mapping = {'januari': 'January', 'februari': 'February', 'maret': 'March', 'april': 'April', 'mei': 'May', 'juni': 'June', 'juli': 'July', 'agustus': 'August', 'september': 'September', 'oktober': 'October', 'november': 'November', 'desember': 'December'}
     temp_bi = pd.read_csv("data/BI-7Day-RR.csv", header=None)

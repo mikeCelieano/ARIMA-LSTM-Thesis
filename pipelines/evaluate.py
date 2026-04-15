@@ -16,7 +16,7 @@ def run_backtest(currency, test_days=30):
 
     # =========================
     # 1. LOAD DATA
-    # =========================
+    # ======================== 
     exog_data = load_local_exog()
     df_raw = load_local_forex(currency)
 
