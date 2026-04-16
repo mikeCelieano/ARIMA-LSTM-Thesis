@@ -41,21 +41,38 @@ class ForexHybrid:
 
         self.lstm_residual.train_initial(df_residual, exog_train)
 
-    def incremental_train(self, latest_df, latest_exog):
-        # Update ARIMA
-        self.arima_base.append_data(latest_df, latest_exog)
+    # def incremental_train(self, latest_df, latest_exog):
+    #     # Update ARIMA
+    #     self.arima_base.append_data(latest_df, latest_exog)
 
-        # Hitung residual terbaru
-        pred_arima = self.arima_base.forecast(latest_df, latest_exog)['next_price']
+    #     # Hitung residual terbaru
+    #     pred_arima = self.arima_base.forecast(latest_df, latest_exog)['next_price']
+    #     actual = latest_df['Close Price'].iloc[-1]
+
+    #     residual = actual - pred_arima
+
+    #     # Optional smoothing kecil
+    #     residual = residual * 0.7  # dampen noise
+
+    #     latest_res_df = latest_df.copy()
+    #     latest_res_df['Close Price'] = residual
+
+    #     self.lstm_residual.incremental_train(latest_res_df, latest_exog)
+    def incremental_train(self, latest_df, latest_exog):
+        
+        latest_1d_df = latest_df.iloc[[-1]]
+        latest_1d_exog = latest_exog.iloc[[-1]]
+        self.arima_base.append_data(latest_1d_df, latest_1d_exog)
+
+        pred_arima = self.arima_base.forecast(latest_1d_df, latest_1d_exog)['next_price']
         actual = latest_df['Close Price'].iloc[-1]
 
         residual = actual - pred_arima
 
-        # Optional smoothing kecil
         residual = residual * 0.7  # dampen noise
 
         latest_res_df = latest_df.copy()
-        latest_res_df['Close Price'] = residual
+        latest_res_df['Close Price'] = residual 
 
         self.lstm_residual.incremental_train(latest_res_df, latest_exog)
 

@@ -168,7 +168,7 @@ def run_initial_training(currency_list=["USD/IDR", "EUR/IDR", "GBP/IDR"]):
                     manager.hybrid.tune_and_train(df_train, exog_train)
                 else:
                     manager.arima.train_initial(df_train, exog_train)
-                    manager.lstm.train_initial(df_train, exog_train, max_trials=10,epochs=30)
+                    manager.lstm.train_initial(df_train, exog_train, epochs=30)
                     manager.hybrid.train_initial(df_train, exog_train)
 
                 manager.save_all_models()

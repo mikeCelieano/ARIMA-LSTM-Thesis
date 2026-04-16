@@ -42,37 +42,6 @@ def load_local_fallback(currency_symbol):
         logging.error(f"Gagal memuat file lokal untuk {currency_symbol}: {e}")
         return pd.DataFrame()
 
-# def fetch_forex_alpha(from_currency="USD", to_currency="IDR"):
-#     url = "https://www.alphavantage.co/query"
-#     params = {"function": "FX_DAILY", "from_symbol": from_currency, "to_symbol": to_currency, "apikey": API_KEY, "outputsize": "full"}
-
-#     try:
-#         response = requests.get(url, params=params)
-#         data = response.json()
-        
-#         # Cek API Limit atau Error Message dari Alpha Vantage
-#         if "Note" in data or "Information" in data:
-#             logging.warning(f"API Limit tercapai untuk {from_currency}. Menggunakan data lokal.")
-#             return load_local_fallback(from_currency)
-
-#         time_series = data.get("Time Series FX (Daily)", {})
-        
-#         if not time_series:
-#             logging.warning(f"Data tidak ditemukan untuk {from_currency}. Menggunakan data lokal.")
-#             return load_local_fallback(from_currency)
-
-#         # JIKA BERHASIL DAPAT DATA FRESH
-#         df = pd.DataFrame.from_dict(time_series, orient="index")
-#         df = df.rename(columns={"1. open": "Open", "2. high": "High", "3. low": "Low", "4. close": "Close Price"})
-#         df = df[["Open", "High", "Low", "Close Price"]]
-#         df.index = pd.to_datetime(df.index).tz_localize(None)
-#         df = df.astype(float)
-#         return df.sort_index()
-        
-#     except Exception as e:
-#         logging.error(f"Network error/Exception: {e}. Menggunakan data lokal untuk {from_currency}.")
-#         return load_local_fallback(from_currency)
-
 def fetch_forex_investing(base_curr):
     """
     Fungsi pengganti Alpha Vantage.
@@ -127,15 +96,15 @@ def fetch_forex_investing(base_curr):
 
 @st.cache_data(ttl=3600)
 def load_usd(): 
-    return fetch_forex_alpha("USD", "IDR")
+    return fetch_forex_investing("USD")
 
 @st.cache_data(ttl=3600)
 def load_eur(): 
-    return fetch_forex_alpha("EUR", "IDR")
+    return fetch_forex_investing("EUR")
 
 @st.cache_data(ttl=3600)
 def load_gbp(): 
-    return fetch_forex_alpha("GBP", "IDR")
+    return fetch_forex_investing("GBP")
 
 def exog_birate():
     bulan_mapping = {'januari': 'January', 'februari': 'February', 'maret': 'March', 'april': 'April', 'mei': 'May', 'juni': 'June', 'juli': 'July', 'agustus': 'August', 'september': 'September', 'oktober': 'October', 'november': 'November', 'desember': 'December'}
