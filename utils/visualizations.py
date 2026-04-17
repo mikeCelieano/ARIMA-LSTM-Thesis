@@ -93,14 +93,56 @@ def display_prediction_results(results):
     col2.metric(label="Batas Atas (95%)", value=f"Rp {results['upper_ci']:,.2f}")
     col3.metric(label="Batas Bawah (95%)", value=f"Rp {results['lower_ci']:,.2f}")
 
+# def choose_plot_range():
+#     range_option = st.radio("Pilih rentang visualisasi", ["1 Minggu Terakhir", "2 Minggu Terakhir", "1 Bulan Terakhir", "3 Bulan Terakhir", "6 Bulan Terakhir", "1 Tahun Terakhir"], horizontal=True)
+#     mapping = {"1 Minggu Terakhir": 7, "2 Minggu Terakhir": 14, "1 Bulan Terakhir": 30, "3 Bulan Terakhir": 90, "6 Bulan Terakhir": 180, "1 Tahun Terakhir": 365}
+#     return mapping[range_option]
+
 def choose_plot_range():
-    range_option = st.radio("Pilih rentang visualisasi", ["1 Minggu Terakhir", "2 Minggu Terakhir", "1 Bulan Terakhir", "3 Bulan Terakhir", "6 Bulan Terakhir", "1 Tahun Terakhir"], horizontal=True)
-    mapping = {"1 Minggu Terakhir": 7, "2 Minggu Terakhir": 14, "1 Bulan Terakhir": 30, "3 Bulan Terakhir": 90, "6 Bulan Terakhir": 180, "1 Tahun Terakhir": 365}
+    options = [
+        "1 Hari", "7 Hari", "1 Bulan", "3 Bulan", "5 Bulan", 
+        "1 Tahun", "3 Tahun", "5 Tahun", "10 Tahun", "All Time"
+    ]
+    range_option = st.radio("Pilih rentang visualisasi", options, horizontal=True)
+    
+    mapping = {
+        "1 Hari": 1, 
+        "7 Hari": 7, 
+        "1 Bulan": 30, 
+        "3 Bulan": 90, 
+        "5 Bulan": 150, 
+        "1 Tahun": 365,
+        "3 Tahun": 1095,   # 365 * 3
+        "5 Tahun": 1825,   # 365 * 5
+        "10 Tahun": 3650,  # 365 * 10
+        "All Time": 99999  # Angka besar untuk mencakup seluruh history data
+    }
     return mapping[range_option]
 
+# def choose_sidebar_plot_range():
+#     range_option = st.sidebar.radio("Pilih rentang visualisasi", ["1 Minggu Terakhir", "2 Minggu Terakhir", "1 Bulan Terakhir", "3 Bulan Terakhir", "6 Bulan Terakhir", "1 Tahun Terakhir"], horizontal=True)
+#     mapping = {"1 Minggu Terakhir": 7, "2 Minggu Terakhir": 14, "1 Bulan Terakhir": 30, "3 Bulan Terakhir": 90, "6 Bulan Terakhir": 180, "1 Tahun Terakhir": 365}
+#     return mapping[range_option]
+
 def choose_sidebar_plot_range():
-    range_option = st.sidebar.radio("Pilih rentang visualisasi", ["1 Minggu Terakhir", "2 Minggu Terakhir", "1 Bulan Terakhir", "3 Bulan Terakhir", "6 Bulan Terakhir", "1 Tahun Terakhir"], horizontal=True)
-    mapping = {"1 Minggu Terakhir": 7, "2 Minggu Terakhir": 14, "1 Bulan Terakhir": 30, "3 Bulan Terakhir": 90, "6 Bulan Terakhir": 180, "1 Tahun Terakhir": 365}
+    options = [
+        "1 Hari", "7 Hari", "1 Bulan", "3 Bulan", "5 Bulan", 
+        "1 Tahun", "3 Tahun", "5 Tahun", "10 Tahun", "All Time"
+    ]
+    range_option = st.sidebar.radio("Pilih rentang visualisasi", options, horizontal=True)
+    
+    mapping = {
+        "1 Hari": 1, 
+        "7 Hari": 7, 
+        "1 Bulan": 30, 
+        "3 Bulan": 90, 
+        "5 Bulan": 150, 
+        "1 Tahun": 365,
+        "3 Tahun": 1095,   # 365 * 3
+        "5 Tahun": 1825,   # 365 * 5
+        "10 Tahun": 3650,  # 365 * 10
+        "All Time": 99999  # Angka besar untuk mencakup seluruh history data
+    }
     return mapping[range_option]
 
 def display_side_by_side_metrics(eval_metrics):

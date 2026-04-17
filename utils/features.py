@@ -25,18 +25,21 @@ def prepare_inference_data(df):
     Menyiapkan data H-1 untuk diprediksi oleh UI Streamlit.
     Fungsi ini menggabungkan data forex dengan fitur dan data eksogen (BI & Inflasi).
     """
-    # 1. Tarik data eksogen terbaru
     exog_data = combine_exog()
     
-    # 2. Buat fitur harga
     df_features = create_price_features(df)
+   
+    df_merged = df_features.join(exog_data, how="left")
     
-    # 3. Gabungkan data
-    df_merged = df_features.join(exog_data, how="inner")
-    
-    # Tangani nilai tak terhingga (inf) dan kosong (NaN)
     df_merged = df_merged.replace([np.inf, -np.inf], np.nan)
+
     df_merged = df_merged.ffill().bfill().dropna()
+    # df_merged = df_merged.ffill()
+
+    # df_merged = df_merged.dropna(subset=[
+    #     'Close Price',
+    #     'Open_lag1', 'High_lag1', 'Low_lag1', 'Close_lag1'
+    # ])
     
     # 4. Pisahkan antara target dan fitur eksogen untuk dilempar ke model
     df_inference = df_merged[['Close Price']]

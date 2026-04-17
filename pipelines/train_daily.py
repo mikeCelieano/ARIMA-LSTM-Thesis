@@ -234,28 +234,25 @@ def run_daily_retraining(currency_list=["USD/IDR", "EUR/IDR", "GBP/IDR"]):
             continue
 
         try:
-            # STEP B: Load Full Data dari CSV (Sudah termasuk data baru tadi)
-            # Pakai fetch_forex_investing yang sudah dimodifikasi di data_loader
             df_full = fetch_forex_investing(base_curr)
             
-            # STEP C: Feature Engineering
             df_features = create_price_features(df_full)
             
-            # STEP D: Gabungkan dengan Exogen terbaru
             exog_all = combine_exog()
             df_merged = df_features.join(exog_all, how="left").ffill().bfill()
             
-            # Ambil HANYA baris terakhir untuk Incremental Training
-            latest_point = df_merged.iloc[[-1]]
-            target_1d = latest_point[['Close Price']]
-            exog_1d = latest_point[['Open_lag1', 'High_lag1', 'Low_lag1', 'Close_lag1', 'Return', 'HL_Spread', 'Inflasi', 'BI Rate']]
+            # latest_point = df_merged.iloc[[-1]]
+            # target_1d = latest_point[['Close Price']]
+            # exog_1d = latest_point[['Open_lag1', 'High_lag1', 'Low_lag1', 'Close_lag1', 'Return', 'HL_Spread', 'Inflasi', 'BI Rate']]
             
-            # 2. Ambil 30 baris terakhir (Sequence) untuk LSTM & Hybrid
-            # Pastikan 30 sama dengan sequence_length di modelmu
-            seq_point = df_merged.iloc[-30:] 
-            target_seq = seq_point[['Close Price']]
-            exog_seq = seq_point[['Open_lag1', 'High_lag1', 'Low_lag1', 'Close_lag1', 'Return', 'HL_Spread', 'Inflasi', 'BI Rate']]
+            # seq_point = df_merged.iloc[-30:] 
+            # target_seq = seq_point[['Close Price']]
+            # exog_seq = seq_point[['Open_lag1', 'High_lag1', 'Low_lag1', 'Close_lag1', 'Return', 'HL_Spread', 'Inflasi', 'BI Rate']]
 
+            target_seq = df_merged.iloc[-31:][['Close Price']]
+            exog_seq = df_merged.iloc[-31:][['Open_lag1', 'High_lag1', 'Low_lag1', 'Close_lag1', 'Return', 'HL_Spread', 'Inflasi', 'BI Rate']]
+
+            latest_point = df_merged.iloc[[-1]]
             print(f"📅 Data Tanggal: {latest_point.index[0].date()}")
             
             # STEP E: Incremental Retraining (Loop untuk Baseline & Tuned)
@@ -267,7 +264,7 @@ def run_daily_retraining(currency_list=["USD/IDR", "EUR/IDR", "GBP/IDR"]):
                 
                 if manager.load_all_models():
                     print(f"   -> Updating ARIMA {mode}...")
-                    manager.arima.append_data(target_1d, exog_1d) # <-- Pakai data 1 hari
+                    manager.arima.append_data(target_seq, exog_seq) # <-- Pakai data 1 hari
                     
                     print(f"   -> Updating LSTM {mode} (1 Epoch)...")
                     manager.lstm.incremental_train(target_seq, exog_seq) # <-- Pakai data 30 hari

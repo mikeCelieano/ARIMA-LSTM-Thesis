@@ -9,9 +9,6 @@ import os
 import logging # Tambahan untuk logging error ke terminal
 from dotenv import load_dotenv
 
-load_dotenv()
-API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
-
 years = range(2025, 2026)
 id_holidays = holidays.Indonesia(years=years)
 holiday_dates = pd.to_datetime(list(id_holidays.keys()))

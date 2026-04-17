@@ -133,9 +133,6 @@ def run_initial_training(currency_list=["USD/IDR", "EUR/IDR", "GBP/IDR"]):
             print(f"📅 Forex Range: {df_raw.index.min().date()} s/d {df_raw.index.max().date()}")
 
             df_features = create_local_features(df_raw)
-
-            # JOIN: Pakai LEFT agar data tahun 2000 tetap ada!
-            # Exog yang NaN (2000-2014) diisi dengan nilai 2015 via bfill()
             df_merged = df_features.join(exog_data, how="left").bfill().ffill()
             
             # Buang baris yang benar-benar rusak total (biasanya tidak ada)

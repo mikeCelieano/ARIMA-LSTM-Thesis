@@ -14,6 +14,12 @@ class ForexLSTM:
         self.scaler_X = MinMaxScaler()
         self.scaler_y = MinMaxScaler()
 
+    # 🔴 KONSEP BARU: Helper untuk menghitung Delta
+    def _prepare_data_diff(self, df):
+        df_diff = df.copy()
+        df_diff['Price_Diff'] = df_diff['Close Price'].diff()
+        return df_diff.dropna()
+
     def _prepare_sequences(self, X, y):
         X_seq, y_seq = [], []
         for i in range(len(X) - self.sequence_length):
@@ -51,21 +57,22 @@ class ForexLSTM:
     def tune_and_train(self, df_train, exog_train,
                        max_trials=15, epochs=30, batch_size=32):
 
-        print("   -> Tuning LSTM (Time-Series Aware)...")
+        print("   -> Tuning LSTM (Time-Series Aware - Delta Mode)...")
 
-        data = df_train[['Close Price']].join(exog_train).dropna()
+        # 🔴 Hitung Delta
+        df_diff = self._prepare_data_diff(df_train)
+        data = df_diff[['Close Price', 'Price_Diff']].join(exog_train).dropna()
 
-        X_raw = data.drop(columns=['Close Price']).values
-        y_raw = data[['Close Price']].values
+        # 🔴 Target Y sekarang adalah 'Price_Diff', bukan 'Close Price'
+        X_raw = data.drop(columns=['Close Price', 'Price_Diff']).values
+        y_raw = data[['Price_Diff']].values
 
         self.n_features = X_raw.shape[1]
 
-        # 🔴 SPLIT DULU (hindari leakage)
         split = int(len(X_raw) * 0.8)
         X_train_raw, X_val_raw = X_raw[:split], X_raw[split:]
         y_train_raw, y_val_raw = y_raw[:split], y_raw[split:]
 
-        # 🔴 FIT SCALER HANYA DI TRAIN
         self.scaler_X.fit(X_train_raw)
         self.scaler_y.fit(y_train_raw)
 
@@ -75,7 +82,6 @@ class ForexLSTM:
         y_train = self.scaler_y.transform(y_train_raw)
         y_val = self.scaler_y.transform(y_val_raw)
 
-        # 🔴 SEQUENCE SETELAH SPLIT
         X_train_seq, y_train_seq = self._prepare_sequences(X_train, y_train)
         X_val_seq, y_val_seq = self._prepare_sequences(X_val, y_val)
 
@@ -93,7 +99,7 @@ class ForexLSTM:
             validation_data=(X_val_seq, y_val_seq),
             epochs=epochs,
             batch_size=batch_size,
-            verbose=1
+            verbose=0
         )
 
         best_hps = tuner.get_best_hyperparameters(1)[0]
@@ -124,10 +130,12 @@ class ForexLSTM:
     def train_initial(self, df_train, exog_train,
                       epochs=50, batch_size=32):
 
-        data = df_train[['Close Price']].join(exog_train).dropna()
+        # 🔴 Hitung Delta
+        df_diff = self._prepare_data_diff(df_train)
+        data = df_diff[['Close Price', 'Price_Diff']].join(exog_train).dropna()
 
-        X_raw = data.drop(columns=['Close Price']).values
-        y_raw = data[['Close Price']].values
+        X_raw = data.drop(columns=['Close Price', 'Price_Diff']).values
+        y_raw = data[['Price_Diff']].values
 
         self.n_features = X_raw.shape[1]
 
@@ -160,10 +168,12 @@ class ForexLSTM:
 
     def incremental_train(self, latest_df, latest_exog, epochs=1):
 
-        data = latest_df[['Close Price']].join(latest_exog).dropna()
+        # 🔴 Hitung Delta untuk data harian terbaru
+        df_diff = self._prepare_data_diff(latest_df)
+        data = df_diff[['Close Price', 'Price_Diff']].join(latest_exog).dropna()
 
-        X = self.scaler_X.transform(data.drop(columns=['Close Price']).values)
-        y = self.scaler_y.transform(data[['Close Price']].values)
+        X = self.scaler_X.transform(data.drop(columns=['Close Price', 'Price_Diff']).values)
+        y = self.scaler_y.transform(data[['Price_Diff']].values)
 
         if len(X) < self.sequence_length:
             return
@@ -175,22 +185,32 @@ class ForexLSTM:
 
     def forecast(self, df_recent, exog_recent):
 
-        data = df_recent[['Close Price']].join(exog_recent).dropna()
+        # 🔴 1. Ambil harga terakhir sblm didiff untuk keperluan rekonstruksi di akhir
+        last_actual_price = df_recent['Close Price'].iloc[-1]
 
-        X = self.scaler_X.transform(data.drop(columns=['Close Price']).values)
+        # 🔴 2. Siapkan data dengan Delta
+        df_diff = self._prepare_data_diff(df_recent)
+        data = df_diff[['Close Price', 'Price_Diff']].join(exog_recent).dropna()
+
+        X = self.scaler_X.transform(data.drop(columns=['Close Price', 'Price_Diff']).values)
 
         if len(X) < self.sequence_length:
             raise ValueError("Data kurang untuk sequence.")
 
         X_seq = np.array([X[-self.sequence_length:]])
 
+        # 🔴 3. Nilai pred_scaled ini sekarang melambangkan 'Selisih'
         pred_scaled = self.model.predict(X_seq, verbose=0)
-        pred_actual = self.scaler_y.inverse_transform(pred_scaled)[0][0]
+        pred_delta = self.scaler_y.inverse_transform(pred_scaled)[0][0]
+
+        # 🔴 4. REKONSTRUKSI: Harga Asli Terakhir + Prediksi Selisih
+        final_price = last_actual_price + pred_delta
 
         return {
-            'next_price': pred_actual,
-            'lower_ci': pred_actual * 0.995,
-            'upper_ci': pred_actual * 1.005
+            'next_price': float(final_price),
+            'delta_predicted': float(pred_delta),
+            'lower_ci': float(final_price * 0.998), # Sedikit menyempitkan rasio CI krn model lbh akurat
+            'upper_ci': float(final_price * 1.002)
         }
 
     def save(self, model_path, scaler_path_x, scaler_path_y):

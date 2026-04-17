@@ -91,10 +91,15 @@ else:
     pred_price = active_result['next_price']
     selisih = pred_price - last_price
     persen = (selisih / last_price) * 100
+
+    if selisih < 0:
+        delta_text = f"-Rp {abs(selisih):,.2f} ({persen:.2f}%)"
+    else:
+        delta_text = f"Rp {selisih:,.2f} ({persen:.2f}%)"
     
     col1.metric(label=f"Prediksi ({future_dates[0].strftime('%d-%m-%Y')})", 
                 value=f"Rp {pred_price:,.2f}", 
-                delta=f"Rp {selisih:,.2f} ({persen:.2f}%)")
+                delta=delta_text)
     col2.metric(label="Batas Atas (95% CI)", value=f"Rp {active_result['upper_ci']:,.2f}")
     col3.metric(label="Batas Bawah (95% CI)", value=f"Rp {active_result['lower_ci']:,.2f}")
     

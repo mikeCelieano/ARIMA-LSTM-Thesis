@@ -76,4 +76,4 @@ class ModelManager:
             os.path.join(self.model_dir, "scaler_y.pkl")
         )
         
-        joblib.dump(self.hybrid, os.path.join(self.model_dir, "hybrid.pkl"))
+        joblib.dump(self.hybrid, os.path.join(self.model_dir, "hybrid.pkl"))    
