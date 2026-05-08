@@ -1,37 +1,20 @@
 import streamlit as st
+from utils.theme import inject_theme, render_hybrid_navbar
 
-st.title("💻 Panduan Cara Menggunakan Gree")
+inject_theme()
+render_hybrid_navbar(show_prediction_controls=False)
+
+st.title("💻 Panduan Penggunaan")
 st.divider()
 
-st.header("📈 Cara Melihat Hasil Prediksi Harga Penutupan")
-st.write("")
-st.subheader("1. Buka Sidebar")
-st.write("Buka sidebar pada bagian kiri halaman.")
-st.write("")
-
-st.subheader("2. Pilih Menu 'Mulai Prediksi'")
-st.write("Pilih menu 'Mulai Prediksi' di side bar.")
-st.write("")
-
-st.subheader("3. Pilih Mata Uang")
-st.write("Pada bagian sidebar, pilih mata uang yang ingin diprediksi.")
-st.write("")
-
-st.subheader("4. Jalankan Prediksi")
-st.write("Klik tombol **Prediksi** untuk memulai analisis.")
+st.header("📈 Cara Melihat Prediksi")
+st.write("1. Pilih menu **Mulai Prediksi** di sidebar.")
+st.write("2. Pilih mata uang dan model yang ingin digunakan.")
+st.write("3. Klik tombol **🔮 Mulai Analisis**.")
 
 st.divider()
 
-st.header("📊 Cara Melihat Analisis Indikator Teknikal Harga Penutupan")
-st.write("")
-st.subheader("1. Buka Sidebar")
-st.write("Buka sidebar pada bagian kiri halaman.")
-st.write("")
-
-st.subheader("2. Pilih Menu 'Analisis Historis'")
-st.write("Pilih menu 'Analisis Historis' di side bar.")
-st.write("")
-
-st.subheader("3. Pilih Mata Uang")
-st.write("Pada bagian utama halaman, pilih mata uang yang ingin dilihat analisisnya.")
-st.write("")
+st.header("📊 Cara Melihat Analisis Historis")
+st.write("1. Pilih menu **Analisis Historis** di sidebar.")
+st.write("2. Pilih mata uang yang ingin dianalisis.")
+st.write("3. Klik tombol **📊 Tampilkan Grafik**.")

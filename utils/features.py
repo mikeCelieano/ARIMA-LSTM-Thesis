@@ -34,14 +34,8 @@ def prepare_inference_data(df):
     df_merged = df_merged.replace([np.inf, -np.inf], np.nan)
 
     df_merged = df_merged.ffill().bfill().dropna()
-    # df_merged = df_merged.ffill()
 
-    # df_merged = df_merged.dropna(subset=[
-    #     'Close Price',
-    #     'Open_lag1', 'High_lag1', 'Low_lag1', 'Close_lag1'
-    # ])
-    
-    # 4. Pisahkan antara target dan fitur eksogen untuk dilempar ke model
+    # Pisahkan antara target dan fitur eksogen untuk dilempar ke model
     df_inference = df_merged[['Close Price']]
     exog_inference = df_merged[['Open_lag1', 'High_lag1', 'Low_lag1', 'Close_lag1', 'Return', 'HL_Spread', 'Inflasi', 'BI Rate']]
     

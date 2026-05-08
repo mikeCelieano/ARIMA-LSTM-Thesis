@@ -156,14 +156,4 @@ def combine_exog():
     exog = exog_inflasi().join(exog_birate(), how="outer").replace([np.inf, -np.inf], np.nan).ffill().bfill().dropna()
     return exog
 
-def create_price_features(df):
-    df_feat = df.copy()
-    df_feat["Open_lag1"] = df_feat["Open"].shift(1)
-    df_feat["High_lag1"] = df_feat["High"].shift(1)
-    df_feat["Low_lag1"] = df_feat["Low"].shift(1)
-    df_feat["Close_lag1"] = df_feat["Close Price"].shift(1)
-    df_feat["Return"] = df_feat["Close Price"].pct_change()
-    df_feat["HL_Spread"] = df_feat["High"] - df_feat["Low"]
-    return df_feat
-
 df_map = {'USD/IDR': load_usd, 'EUR/IDR': load_eur, 'GBP/IDR': load_gbp}

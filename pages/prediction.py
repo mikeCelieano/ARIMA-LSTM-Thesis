@@ -1,5 +1,4 @@
 import streamlit as st
-import numpy as np
 import pandas as pd
 from datetime import timedelta
 
@@ -7,161 +6,124 @@ from utils.data_loader import df_map, custom_bd
 from utils.features import prepare_inference_data
 from utils.metrics import get_dynamic_metrics
 from models.model_manager import ModelManager
-from utils.visualizations import plot_forex, display_side_by_side_metrics, choose_sidebar_plot_range
+from utils.visualizations import plot_forex_interactive, choose_sidebar_plot_range, _INTERACTIVE_CFG
+from utils.theme import inject_theme, render_hybrid_navbar
 
-if 'predicted' not in st.session_state: st.session_state.predicted = False
-if 'current_currency' not in st.session_state: st.session_state.current_currency = None
+inject_theme()
 
-st.sidebar.markdown("### 💱 Pilih Mata Uang")
-currency = st.sidebar.radio("Pilih satu yang ingin dilihat prediksinya", ["USD/IDR", "EUR/IDR", "GBP/IDR"])
+if 'predicted' not in st.session_state:
+    st.session_state.predicted = False
+if 'last_settings' not in st.session_state:
+    st.session_state.last_settings = {}
 
-st.sidebar.markdown("### ⚙️ Pilih Model Utama")
-selected_model = st.sidebar.selectbox(
-    "Pilih model untuk visualisasi grafik:", 
-    ["ARIMA-LSTM Hybrid", "ARIMA", "LSTM"]
+# ─────────────────────────────────────────────
+# Sidebar Controls
+# ─────────────────────────────────────────────
+col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
+
+with col1:
+    currency = st.selectbox("💱 Mata Uang", ["USD/IDR", "EUR/IDR", "GBP/IDR"])
+
+with col2:
+    selected_model = st.selectbox("⚙️ Model", ["ARIMA-LSTM Hybrid", "ARIMA", "LSTM"])
+
+with col3:
+    model_mode = st.selectbox("🧠 Mode", ["Tuning", "Non-Tuning"])
+
+with col4:
+    n_days_options = {"7D": 7, "1M": 30, "3M": 90, "1Y": 365}
+    n_days_label = st.selectbox("📅 Range", list(n_days_options.keys()), index=1)
+    n_days = n_days_options[n_days_label]
+
+# Add navbar
+render_hybrid_navbar(
+    show_prediction_controls=True,
+    currency=currency,
+    model=selected_model,
+    mode=model_mode
 )
 
-st.sidebar.markdown("### 🧠 Mode Model")
-model_mode = st.sidebar.radio(
-    "Pilih jenis model:",
-    ["Tuning", "Non-Tuning"]
-)
-
-# ⬇️ TARO DI SINI
-mode_map = {
-    "Tuning": "tuned",
-    "Non-Tuning": "baseline"
+# ─────────────────────────────────────────────
+# AUTO-REFRESH LOGIC (Goal 3)
+# ─────────────────────────────────────────────
+current_settings = {
+    'currency': currency,
+    'model': selected_model,
+    'mode': model_mode,
 }
 
-n_days = choose_sidebar_plot_range()
+# Detect if settings changed
+settings_changed = (st.session_state.last_settings != current_settings)
 
-if st.session_state.current_currency != currency:
-    st.session_state.predicted = False
-    st.session_state.current_currency = currency
+if settings_changed:
+    st.session_state.last_settings = current_settings
+    st.session_state.predicted = False  # Trigger re-prediction
 
-# Ambil data terbaru untuk UI
+# Load data
 df = df_map[currency]()
 last_date = df.index[-1]
 future_dates = pd.date_range(start=last_date + timedelta(days=1), periods=1, freq=custom_bd)
 
-st.sidebar.markdown("### 🗓 Tanggal Penutupan Terakhir")
-st.sidebar.write(last_date.strftime('%d %B %Y'))
-st.sidebar.markdown("### 🗓 Tanggal yang Akan Diprediksi")
-st.sidebar.write(future_dates[0].strftime('%d %B %Y'))
+st.sidebar.markdown(f"**Data Terakhir:** {last_date.strftime('%d %b %Y')}")
+st.sidebar.markdown(f"**Target Prediksi:** {future_dates[0].strftime('%d %b %Y')}")
 
-st.header("Prediksi & Evaluasi Model Valuta Asing")
-st.write("---")
-
-# --- TOMBOL PREDIKSI ---
-if st.sidebar.button("🔮 Mulai Analisis"):
-    with st.spinner(f"Memuat model {currency} dan mengeksekusi prediksi..."):
-        
+# ─────────────────────────────────────────────
+# AUTO-RUN PREDICTION
+# ─────────────────────────────────────────────
+if not st.session_state.predicted or settings_changed:
+    with st.spinner("⏳ Memproses prediksi..."):
         try:
-            # 1. Siapkan data H-1 untuk dilempar ke model
-            df_inference, exog_inference = prepare_inference_data(df)
+            df_inf, exog_inf = prepare_inference_data(df)
+            manager = ModelManager(currency, mode=model_mode)
             
-            # 2. Panggil Model Manager (Memuat file .pkl dan .keras)
-            manager = ModelManager(currency, mode=mode_map[model_mode])
-            is_loaded = manager.load_all_models()
-            
-            if not is_loaded:
-                st.error("⚠️ Model belum ditemukan! Pastikan proses training awal sudah selesai.")
-            else:
-                # 3. Prediksi dari ketiga model secara bersamaan
-                all_results = manager.predict_all(df_inference, exog_inference)
-                
-                # Simpan ke Session State
-                st.session_state.all_results = all_results
-                st.session_state.inference_df = df_inference
+            if manager.load_all_models():
+                st.session_state.all_results = manager.predict_all(df_inf, exog_inf)
+                st.session_state.inference_df = df_inf
+                st.session_state.exog_inf = exog_inf
                 st.session_state.predicted = True
+            else:
+                st.error("⚠️ Model tidak ditemukan!")
+                st.stop()
         except Exception as e:
-            st.error(f"Terjadi kesalahan saat memproses data: {e}")
+            st.error(f"Error: {e}")
+            st.stop()
 
-# --- TAMPILAN HASIL ---
-if not st.session_state.predicted:
-    st.info("Klik tombol '🔮 Mulai Analisis' pada sidebar untuk memuat prediksi dari seluruh model.")
-else:
-    active_result = st.session_state.all_results[selected_model]
-    
-    # 1. Tampilkan Metrik Prediksi H+1 Model Terpilih
-    st.subheader(f"📈 Hasil Prediksi Detail: {selected_model}")
-    col1, col2, col3 = st.columns(3)
-    
-    last_price = st.session_state.inference_df['Close Price'].iloc[-1]
-    pred_price = active_result['next_price']
-    selisih = pred_price - last_price
-    persen = (selisih / last_price) * 100
+# ─────────────────────────────────────────────
+# Main Display
+# ─────────────────────────────────────────────
+st.header(f"Prediksi {currency}")
 
-    if selisih < 0:
-        delta_text = f"-Rp {abs(selisih):,.2f} ({persen:.2f}%)"
-    else:
-        delta_text = f"Rp {selisih:,.2f} ({persen:.2f}%)"
-    
-    col1.metric(label=f"Prediksi ({future_dates[0].strftime('%d-%m-%Y')})", 
-                value=f"Rp {pred_price:,.2f}", 
-                delta=delta_text)
-    col2.metric(label="Batas Atas (95% CI)", value=f"Rp {active_result['upper_ci']:,.2f}")
-    col3.metric(label="Batas Bawah (95% CI)", value=f"Rp {active_result['lower_ci']:,.2f}")
-    
-    # 2. Tampilkan Plot Grafik
-    st.write("")
-    
-    # Menyesuaikan format dataframe hasil prediksi untuk plot_forex
-    forecast_df_format = pd.DataFrame({
-        "Date": future_dates,
-        "Forecast": [pred_price],
-        "Lower CI": [active_result['lower_ci']],
-        "Upper CI": [active_result['upper_ci']]
-    })
-    
-    plot_forex(df, forecast_df_format, 1, n_days=n_days)
-    
-    # ==========================================
-    # 3. MENAMPILKAN EVALUASI METRIK SECARA DINAMIS
-    # ==========================================
-    st.markdown("---")
-    st.subheader("📊 Evaluasi Performa Model (Testing Set 30 Hari)")
-    
-    with st.spinner("⏳ Menghitung metrik evaluasi dinamis... (Hanya memakan waktu agak lama pada klik pertama)"):
-        # Tarik data utuh
-        df_inf, exog_inf = prepare_inference_data(df)
-        
-        # Eksekusi caching perhitungan backtest
-        eval_metrics_dynamic = get_dynamic_metrics(
-            currency,
-            df_inf,
-            exog_inf,
-            mode=mode_map[model_mode],
-            model_name=selected_model,
-            test_days=30
-        )
-        
-        # Tampilkan tabel komparasi
-        if eval_metrics_dynamic:
-            # display_side_by_side_metrics(eval_metrics_dynamic)
-            metrics = eval_metrics_dynamic[selected_model]
+res = st.session_state.all_results[selected_model]
+df_inf = st.session_state.inference_df
+exog_inf = st.session_state.exog_inf
+last_price = df_inf['Close Price'].iloc[-1]
+pred_price = res['next_price']
+delta = pred_price - last_price
+pct = (delta / last_price) * 100
 
-            st.write("")
-            col1, col2, col3, col4 = st.columns(4)
+# Metrics
+col1, col2, col3 = st.columns(3)
+col1.metric("Prediksi", f"Rp {pred_price:,.2f}", f"{delta:+,.2f} ({pct:+.2f}%)")
+col2.metric("Upper CI", f"Rp {res['upper_ci']:,.2f}")
+col3.metric("Lower CI", f"Rp {res['lower_ci']:,.2f}")
 
-            col1.metric(
-                label="MAE",
-                value=f"{metrics['MAE']:.4f}"
-            )
+# Interactive Chart (Goal 4)
+fig = plot_forex_interactive(df_inf, res, currency, n_days=n_days)
+st.plotly_chart(fig, use_container_width=True, config=_INTERACTIVE_CFG)
 
-            col2.metric(
-                label="RMSE",
-                value=f"{metrics['RMSE']:.4f}"
-            )
+# Metrics evaluation
+st.markdown("---")
+st.subheader("📊 Evaluasi Model (30 Hari Terakhir)")
 
-            col3.metric(
-                label="MAPE (%)",
-                value=f"{metrics['MAPE']:.2f}%"
-            )
-
-            col4.metric(
-                label="CI Coverage",
-                value=f"{metrics['CI Coverage']:.2f}%"
-            )
-        else:
-            st.error("Gagal memuat metrik evaluasi. Pastikan model sudah di-training.")
+with st.spinner("Menghitung metrik..."):
+    try:
+        eval_res = get_dynamic_metrics(currency, df_inf, exog_inf, model_mode, selected_model, 30)
+        if eval_res:
+            m = eval_res[selected_model]
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("MAE", f"{m['MAE']:.4f}")
+            c2.metric("RMSE", f"{m['RMSE']:.4f}")
+            c3.metric("MAPE", f"{m['MAPE']:.2f}%")
+            c4.metric("CI Coverage", f"{m['CI Coverage']:.0f}%")
+    except Exception as e:
+        st.warning(f"Gagal menghitung metrik: {e}")

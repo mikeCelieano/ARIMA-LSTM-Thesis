@@ -1,8 +1,5 @@
 import os
 import joblib
-import numpy as np
-import pandas as pd
-# Asumsi kita akan mengimpor definisi kelas dari file lain
 from models.arima_model import ForexARIMA
 from models.lstm_model import ForexLSTM
 from models.hybrid_model import ForexHybrid
@@ -15,7 +12,8 @@ class ModelManager:
 
     def __init__(self, currency, mode="tuned", base_path="saved_models/"):
         self.currency = currency.replace("/", "_")
-        self.mode = mode.lower()  # "tuned" / "baseline"
+        _mode_map = {"tuning": "tuned", "non-tuning": "baseline", "tuned": "tuned", "baseline": "baseline"}
+        self.mode = _mode_map.get(mode.lower(), mode.lower())
         
         self.model_dir = os.path.join(base_path, self.currency, self.mode)
         os.makedirs(self.model_dir, exist_ok=True)

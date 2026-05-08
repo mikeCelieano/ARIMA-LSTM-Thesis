@@ -2,168 +2,359 @@ import streamlit as st
 import numpy as np
 import plotly.graph_objects as go
 import pandas as pd
-from datetime import timedelta
-from utils.data_loader import custom_bd
 from utils.indicators import calculate_macd, calculate_rsi
 
-def plot_forex(df, df_forecast, step, n_days):
-    start_date = df.index.max() - pd.Timedelta(days=n_days)
-    df_filtered = df.loc[df.index >= start_date]
+# ─────────────────────────────────────────────
+# Shared dark Plotly layout base
+# ─────────────────────────────────────────────
+_BASE_LAYOUT = dict(
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="#0d1421",
+    font=dict(family="DM Sans, sans-serif", color="#7a90b0", size=11),
+    xaxis=dict(
+        showgrid=True, gridcolor="rgba(255,255,255,0.04)", gridwidth=1,
+        linecolor="rgba(255,255,255,0.06)", zeroline=False,
+        tickfont=dict(family="JetBrains Mono, monospace", size=10, color="#4a6080"),
+        rangeslider=dict(visible=False),
+        showspikes=True, spikecolor="rgba(0,212,170,0.35)",
+        spikethickness=1, spikedash="dot",
+        fixedrange=False,
+    ),
+    yaxis=dict(
+        showgrid=True, gridcolor="rgba(255,255,255,0.04)", gridwidth=1,
+        linecolor="rgba(255,255,255,0.06)", zeroline=False,
+        tickfont=dict(family="JetBrains Mono, monospace", size=10, color="#4a6080"),
+        showspikes=True, spikecolor="rgba(0,212,170,0.35)",
+        spikethickness=1, spikedash="dot",
+        fixedrange=False,
+    ),
+    hovermode="x unified",
+    hoverlabel=dict(
+        bgcolor="#121c30",
+        bordercolor="rgba(0,212,170,0.25)",
+        font=dict(family="JetBrains Mono, monospace", size=11, color="#dce8f7"),
+    ),
+    legend=dict(
+        bgcolor="rgba(13,20,33,0.85)",
+        bordercolor="rgba(255,255,255,0.06)",
+        borderwidth=1,
+        font=dict(family="DM Sans, sans-serif", size=11, color="#7a90b0"),
+    ),
+    margin=dict(l=10, r=10, t=40, b=10),
+    dragmode='zoom',  # Enable zoom by default
+)
+
+# INTERACTIVE config with all controls enabled
+_INTERACTIVE_CFG = {
+    "displayModeBar": True,
+    "displaylogo": False,
+    "modeBarButtonsToRemove": [],  # Show all buttons
+    "toImageButtonOptions": {
+        "format": "png",
+        "filename": "forex_chart",
+        "height": 800,
+        "width": 1200,
+        "scale": 2,
+    },
+}
+
+# Static config (for charts that don't need interaction)
+_STATIC_CFG = {"displayModeBar": False}
+
+
+def _filter(df: pd.DataFrame, n_days: int) -> pd.DataFrame:
+    if n_days >= 99999:
+        return df
+    cutoff = df.index.max() - pd.Timedelta(days=n_days)
+    return df.loc[df.index >= cutoff]
+
+
+def _title_annotation(text: str) -> dict:
+    return dict(
+        text=text, x=0.0, xanchor="left",
+        font=dict(family="Syne, sans-serif", size=13, color="#dce8f7"),
+    )
+
+
+# ─────────────────────────────────────────────
+# INTERACTIVE Forex Chart (Goal 4)
+# ─────────────────────────────────────────────
+def plot_forex_interactive(df_inf, res, currency, n_days=30):
+    """
+    Interactive prediction chart with:
+    - Zoom box (drag to zoom)
+    - Pan (shift + drag)
+    - Reset axes (double click)
+    - Autoscale
+    - Download PNG
+    """
+    # 1. Filter data historis
+    start_date = df_inf.index.max() - pd.Timedelta(days=n_days)
+    df_filtered = df_inf.loc[df_inf.index >= start_date]
     
+    last_date = df_inf.index[-1].replace(tzinfo=None)
+    last_price = df_inf['Close Price'].iloc[-1]
+    
+    # 2. Handle prediction date
+    r_date_raw = res.get('Date') or res.get('date')
+    if r_date_raw is not None:
+        r_date = pd.to_datetime(r_date_raw).replace(tzinfo=None)
+        if r_date <= last_date:
+            r_date = last_date + pd.Timedelta(days=1)
+    else:
+        r_date = last_date + pd.Timedelta(days=1)
+
+    r_upper = res.get('Upper CI') or res.get('upper_ci')
+    r_lower = res.get('Lower CI') or res.get('lower_ci')
+    r_next  = res.get('Forecast') or res.get('next_price')
+
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df_filtered.index, y=df_filtered["Close Price"], mode="lines", name="Historis", line=dict(color="blue", width=2)))
+
+    # 3. Confidence Interval
     fig.add_trace(go.Scatter(
-        x=list(df_forecast["Date"]) + list(df_forecast["Date"][::-1]),
-        y=list(df_forecast["Upper CI"]) + list(df_forecast["Lower CI"][::-1]),
-        fill='toself', fillcolor='rgba(255,0,0,0.2)', line=dict(color='rgba(255,100,100,0.5)', width=1),
-        name="Confidence Interval (95%)", hoverinfo='skip'
+        x=[last_date, r_date, r_date, last_date],
+        y=[last_price, r_upper, r_lower, last_price],
+        fill='toself',
+        fillcolor='rgba(0, 212, 170, 0.1)', 
+        line=dict(color='rgba(255,255,255,0)'),
+        name="95% CI",
+        hoverinfo='skip'
+    ))
+
+    # 4. Historical Price
+    fig.add_trace(go.Scatter(
+        x=df_filtered.index,
+        y=df_filtered["Close Price"],
+        mode="lines",
+        name="Historical Price",
+        line=dict(color="#4d9fff", width=2),
+        hovertemplate="<b>%{x|%d %b %Y}</b><br>Price: Rp %{y:,.2f}<extra></extra>"
+    ))
+
+    # 5. Prediction Point
+    fig.add_trace(go.Scatter(
+        x=[last_date, r_date],
+        y=[last_price, r_next],
+        mode="lines+markers",
+        name="Prediction",
+        line=dict(color="#00d4aa", width=2, dash="dash"),
+        marker=dict(
+            color="#00d4aa", 
+            size=10, 
+            symbol="diamond",
+            line=dict(color="#070b12", width=1)
+        ),
+        hovertemplate="<b>Prediction</b><br>%{x|%d %b %Y}<br>Rp %{y:,.2f}<extra></extra>"
+    ))
+
+    # 6. Layout with zoom/pan enabled
+    fig.update_layout(**{
+        **_BASE_LAYOUT,
+        "height": 500,
+        "xaxis": dict(
+            showgrid=True,
+            gridcolor="rgba(255,255,255,0.03)",
+            range=[df_filtered.index.min(), r_date + pd.Timedelta(days=1)],
+            fixedrange=False,
+        ),
+        "yaxis": dict(
+            showgrid=True,
+            gridcolor="rgba(255,255,255,0.03)",
+            side="right",
+            tickformat=",.0f",
+            fixedrange=False,
+        ),
+        "showlegend": True,
+        "legend": dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+        ),
+    })
+    
+    return fig
+
+
+# ─────────────────────────────────────────────
+# Candlestick chart
+# ─────────────────────────────────────────────
+def plot_candlestick(df: pd.DataFrame, n_days: int, currency_label: str = ""):
+    df_f = _filter(df, n_days)
+
+    fig = go.Figure()
+    fig.add_trace(go.Candlestick(
+        x=df_f.index,
+        open=df_f["Open"],
+        high=df_f["High"],
+        low=df_f["Low"],
+        close=df_f["Close Price"],
+        name="OHLC",
+        increasing=dict(line=dict(color="#00d4aa", width=1), fillcolor="#00d4aa"),
+        decreasing=dict(line=dict(color="#f04b64", width=1), fillcolor="#f04b64"),
+        whiskerwidth=0.5,
+    ))
+
+    layout = {**_BASE_LAYOUT, "height": 420,
+              "title": _title_annotation(f"{currency_label}  —  Candlestick")}
+    fig.update_layout(**layout)
+    st.plotly_chart(fig, use_container_width=True, config=_INTERACTIVE_CFG)
+
+
+# ─────────────────────────────────────────────
+# Line chart (optionally with forecast overlay)
+# ─────────────────────────────────────────────
+def plot_line(df: pd.DataFrame, n_days: int,
+              currency_label: str = "", df_forecast: pd.DataFrame = None):
+    df_f = _filter(df, n_days)
+
+    fig = go.Figure()
+
+    # Historical close
+    fig.add_trace(go.Scatter(
+        x=df_f.index, y=df_f["Close Price"],
+        mode="lines", name="Close Price",
+        line=dict(color="#4d9fff", width=1.5),
+        fill="tozeroy", fillcolor="rgba(77,159,255,0.05)",
+        hovertemplate="<b>%{x|%d %b %Y}</b><br>Close: Rp %{y:,.2f}<extra></extra>",
+    ))
+
+    # Forecast overlay
+    if df_forecast is not None and not df_forecast.empty:
+        fig.add_trace(go.Scatter(
+            x=list(df_forecast["Date"]) + list(df_forecast["Date"][::-1]),
+            y=list(df_forecast["Upper CI"]) + list(df_forecast["Lower CI"][::-1]),
+            fill="toself", fillcolor="rgba(0,212,170,0.07)",
+            line=dict(color="rgba(0,212,170,0.2)", width=0.5),
+            name="95% CI", hoverinfo="skip",
+        ))
+        fig.add_trace(go.Scatter(
+            x=df_forecast["Date"], y=df_forecast["Forecast"],
+            mode="markers+lines", name="Forecast",
+            line=dict(color="#00d4aa", width=1.5, dash="dash"),
+            marker=dict(color="#00d4aa", size=9, symbol="diamond",
+                        line=dict(color="#000", width=1)),
+            hovertemplate="<b>Forecast: %{x|%d %b %Y}</b><br>Rp %{y:,.2f}<extra></extra>",
+        ))
+
+    layout = {**_BASE_LAYOUT, "height": 420,
+              "title": _title_annotation(f"{currency_label}  —  Close Price")}
+    fig.update_layout(**layout)
+    st.plotly_chart(fig, use_container_width=True, config=_INTERACTIVE_CFG)
+
+
+# ─────────────────────────────────────────────
+# MACD chart
+# ─────────────────────────────────────────────
+def plot_macd(df: pd.DataFrame, n_days: int):
+    df_m = calculate_macd(_filter(df, n_days))
+
+    hist_colors = [
+        "rgba(0,212,170,0.65)" if v >= 0 else "rgba(240,75,100,0.65)"
+        for v in df_m["Histogram"]
+    ]
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df_m.index, y=df_m["MACD"], mode="lines", name="MACD",
+        line=dict(color="#4d9fff", width=1.5),
+        hovertemplate="%{x|%d %b}<br>MACD: %{y:.4f}<extra></extra>",
     ))
     fig.add_trace(go.Scatter(
-        x=df_forecast["Date"], y=df_forecast["Forecast"], mode="lines+markers+text", name="Hasil Prediksi",
-        line=dict(color="red", width=2, dash="dash"), marker=dict(color="red", size=6),
-        textposition="top center", hovertemplate="Tanggal: %{x}<br>Prediksi: Rp %{y:,.3f}<extra></extra>"
+        x=df_m.index, y=df_m["Signal"], mode="lines", name="Signal",
+        line=dict(color="#f0b429", width=1.5),
+        hovertemplate="%{x|%d %b}<br>Signal: %{y:.4f}<extra></extra>",
     ))
-    
-    fig.update_layout(template="plotly_white", title={'text': "Visualisasi Data Historis dan Hasil Prediksi", 'x': 0.5}, hovermode="x unified", height=450)
-    st.plotly_chart(fig, use_container_width=True)
+    fig.add_trace(go.Bar(
+        x=df_m.index, y=df_m["Histogram"],
+        name="Histogram", marker_color=hist_colors, hoverinfo="skip",
+    ))
+    fig.add_hline(y=0, line=dict(color="rgba(255,255,255,0.08)", width=1, dash="dot"))
 
-def display_comparison_table(backtest_df, currency):
-    st.header("📊 Evaluasi Performa Model")
-    display_df = backtest_df.copy()
-    display_df['Date'] = display_df['Date'].dt.strftime('%d-%m-%Y')
-    display_df['Actual'] = display_df['Actual'].apply(lambda x: f"Rp {x:,.2f}")
-    display_df['Predicted'] = display_df['Predicted'].apply(lambda x: f"Rp {x:,.2f}")
-    display_df['Lower_CI'] = display_df['Lower_CI'].apply(lambda x: f"Rp {x:,.2f}")
-    display_df['Upper_CI'] = display_df['Upper_CI'].apply(lambda x: f"Rp {x:,.2f}")
-    display_df['Error'] = display_df['Error'].apply(lambda x: f"Rp {x:,.2f}")
-    display_df['Error_Pct'] = display_df['Error_Pct'].apply(lambda x: f"{x:,.2f}%")
-    display_df['Within_CI'] = display_df['Within_CI'].apply(lambda x: "✅ Ya" if x else "❌ Tidak")
-    
-    display_df.columns = ['Tanggal', 'Harga Aktual', 'Hasil Prediksi', 'Batas Bawah (95%)', 'Batas Atas (95%)', 'Dalam CI?', 'Selisih', 'Selisih (%)']
-    st.dataframe(display_df[['Tanggal', 'Harga Aktual', 'Hasil Prediksi', 'Batas Bawah (95%)', 'Batas Atas (95%)', 'Dalam CI?', 'Selisih', 'Selisih (%)']], use_container_width=True, hide_index=True)
-    
-    mae = backtest_df['Error'].abs().mean()
-    mape = backtest_df['Error_Pct'].abs().mean()
-    rmse = np.sqrt((backtest_df['Error'] ** 2).mean())
-    ci_coverage = (backtest_df['Within_CI'].sum() / len(backtest_df)) * 100
-    
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("MAE", f"Rp {mae:,.2f}")
-    col2.metric("MAPE", f"{mape:.2f}%")
-    col3.metric("RMSE", f"Rp {rmse:,.2f}")
-    col4.metric("CI Coverage", f"{ci_coverage:.0f}%")
-    return mae, mape, rmse, ci_coverage
+    layout = {**_BASE_LAYOUT, "height": 300, "bargap": 0.15,
+              "title": _title_annotation("MACD  (12 / 26 / 9)")}
+    fig.update_layout(**layout)
+    st.plotly_chart(fig, use_container_width=True, config=_INTERACTIVE_CFG)
 
-def plot_comparison(backtest_df):
+
+# ─────────────────────────────────────────────
+# RSI chart
+# ─────────────────────────────────────────────
+def plot_rsi(df: pd.DataFrame, n_days: int, period: int = 14):
+    df_r = calculate_rsi(_filter(df, n_days), period=period)
+
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=list(backtest_df['Date']) + list(backtest_df['Date'][::-1]), y=list(backtest_df['Upper_CI']) + list(backtest_df['Lower_CI'][::-1]), fill='toself', fillcolor='rgba(255,0,0,0.2)', line=dict(color='rgba(255,0,0,0)'), name='Confidence Interval (95%)', hoverinfo='skip'))
-    fig.add_trace(go.Scatter(x=backtest_df['Date'], y=backtest_df['Actual'], mode='lines+markers', name='Harga Aktual', line=dict(color='blue', width=2)))
-    fig.add_trace(go.Scatter(x=backtest_df['Date'], y=backtest_df['Predicted'], mode='lines+markers', name='Hasil Prediksi', line=dict(color='red', width=2, dash='dash')))
-    fig.update_layout(template="plotly_white", title={'text': "Perbandingan Harga Aktual vs Prediksi Model", 'x': 0.5}, hovermode="x unified", height=400)
-    st.plotly_chart(fig, use_container_width=True)
+    fig.add_hrect(y0=70, y1=100, fillcolor="rgba(240,75,100,0.04)", line_width=0)
+    fig.add_hrect(y0=0,  y1=30,  fillcolor="rgba(0,212,170,0.04)",  line_width=0)
+    fig.add_trace(go.Scatter(
+        x=df_r.index, y=df_r["RSI"], mode="lines", name="RSI",
+        line=dict(color="#a78bfa", width=1.5),
+        fill="tozeroy", fillcolor="rgba(167,139,250,0.05)",
+        hovertemplate="%{x|%d %b}<br>RSI: %{y:.2f}<extra></extra>",
+    ))
+    fig.add_hline(
+        y=70, line=dict(color="rgba(240,75,100,0.5)", width=1, dash="dash"),
+        annotation_text="Overbought (70)", annotation_position="top right",
+        annotation_font=dict(color="rgba(240,75,100,0.7)", size=10, family="DM Sans"),
+    )
+    fig.add_hline(
+        y=30, line=dict(color="rgba(0,212,170,0.5)", width=1, dash="dash"),
+        annotation_text="Oversold (30)", annotation_position="bottom right",
+        annotation_font=dict(color="rgba(0,212,170,0.7)", size=10, family="DM Sans"),
+    )
 
-def plot_macd(df, n_days):
-    start_date = df.index.max() - pd.Timedelta(days=n_days)
-    df_macd = calculate_macd(df.loc[df.index >= start_date])
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df_macd.index, y=df_macd['MACD'], mode='lines', name='MACD', line=dict(color='blue', width=2)))
-    fig.add_trace(go.Scatter(x=df_macd.index, y=df_macd['Signal'], mode='lines', name='Signal', line=dict(color='red', width=2)))
-    colors = ['green' if val >= 0 else 'red' for val in df_macd['Histogram']]
-    fig.add_trace(go.Bar(x=df_macd.index, y=df_macd['Histogram'], name='Histogram', marker_color=colors, opacity=0.5))
-    fig.update_layout(template="plotly_white", title={'text': "MACD", 'x': 0.5}, hovermode="x unified", height=400)
-    st.plotly_chart(fig, use_container_width=True)
+    layout = {**_BASE_LAYOUT, "height": 280,
+              "title": _title_annotation(f"RSI  ({period})"),
+              "yaxis": {**_BASE_LAYOUT["yaxis"], "range": [0, 100]}}
+    fig.update_layout(**layout)
+    st.plotly_chart(fig, use_container_width=True, config=_INTERACTIVE_CFG)
 
-def plot_rsi(df, n_days, period=14):
-    start_date = df.index.max() - pd.Timedelta(days=n_days)
-    df_rsi = calculate_rsi(df.loc[df.index >= start_date], period=period)
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df_rsi.index, y=df_rsi['RSI'], mode='lines', name='RSI', line=dict(color='purple', width=2), fill='tozeroy', fillcolor='rgba(128, 0, 128, 0.1)'))
-    fig.add_hline(y=70, line_dash="dash", line_color="red", annotation_text="Overbought (70)")
-    fig.add_hline(y=30, line_dash="dash", line_color="green", annotation_text="Oversold (30)")
-    fig.add_hrect(y0=70, y1=100, fillcolor="red", opacity=0.1, line_width=0)
-    fig.add_hrect(y0=0, y1=30, fillcolor="green", opacity=0.1, line_width=0)
-    fig.update_layout(template="plotly_white", title={'text': f"RSI - Period {period}", 'x': 0.5}, hovermode="x unified", yaxis=dict(range=[0, 100]), height=400)
-    st.plotly_chart(fig, use_container_width=True)
 
-def display_prediction_results(results):
-    st.header(f"📊 Prediksi Close Price {results['currency']}")
-    st.metric(label=results['last_date'].strftime('%d-%m-%Y'), value=f"Rp {results['last_price']:,.2f}")
-    col1, col2, col3 = st.columns(3)
-    col1.metric(label=f"{results['future_dates'][0].strftime('%d-%m-%Y')}", value=f"Rp {results['next_price']:,.2f}", delta=f"Rp.{results['perubahan_prediksi']:,.2f} ({results['perubahan_persen']:,.2f}%)")
-    col2.metric(label="Batas Atas (95%)", value=f"Rp {results['upper_ci']:,.2f}")
-    col3.metric(label="Batas Bawah (95%)", value=f"Rp {results['lower_ci']:,.2f}")
+# ─────────────────────────────────────────────
+# Timeframe selector
+# ─────────────────────────────────────────────
+_RANGE_OPTIONS = ["7D", "1M", "3M", "6M", "1Y", "3Y", "5Y", "Max"]
+_RANGE_MAP = {
+    "7D": 7, "1M": 30, "3M": 90, "6M": 180,
+    "1Y": 365, "3Y": 1095, "5Y": 1825, "Max": 99999,
+}
 
-# def choose_plot_range():
-#     range_option = st.radio("Pilih rentang visualisasi", ["1 Minggu Terakhir", "2 Minggu Terakhir", "1 Bulan Terakhir", "3 Bulan Terakhir", "6 Bulan Terakhir", "1 Tahun Terakhir"], horizontal=True)
-#     mapping = {"1 Minggu Terakhir": 7, "2 Minggu Terakhir": 14, "1 Bulan Terakhir": 30, "3 Bulan Terakhir": 90, "6 Bulan Terakhir": 180, "1 Tahun Terakhir": 365}
-#     return mapping[range_option]
 
-def choose_plot_range():
-    options = [
-        "1 Hari", "7 Hari", "1 Bulan", "3 Bulan", "5 Bulan", 
-        "1 Tahun", "3 Tahun", "5 Tahun", "10 Tahun", "All Time"
-    ]
-    range_option = st.radio("Pilih rentang visualisasi", options, horizontal=True)
-    
-    mapping = {
-        "1 Hari": 1, 
-        "7 Hari": 7, 
-        "1 Bulan": 30, 
-        "3 Bulan": 90, 
-        "5 Bulan": 150, 
-        "1 Tahun": 365,
-        "3 Tahun": 1095,   # 365 * 3
-        "5 Tahun": 1825,   # 365 * 5
-        "10 Tahun": 3650,  # 365 * 10
-        "All Time": 99999  # Angka besar untuk mencakup seluruh history data
-    }
-    return mapping[range_option]
+def choose_plot_range(default: str = "3M", sidebar: bool = False) -> int:
+    if "plot_range" not in st.session_state:
+        st.session_state.plot_range = default
+    radio = st.sidebar.radio if sidebar else st.radio
+    selected = radio(
+        "Rentang Grafik" if sidebar else "Rentang",
+        _RANGE_OPTIONS, horizontal=True,
+        index=_RANGE_OPTIONS.index(st.session_state.plot_range),
+        label_visibility="collapsed",
+    )
+    st.session_state.plot_range = selected
+    return _RANGE_MAP[selected]
 
-# def choose_sidebar_plot_range():
-#     range_option = st.sidebar.radio("Pilih rentang visualisasi", ["1 Minggu Terakhir", "2 Minggu Terakhir", "1 Bulan Terakhir", "3 Bulan Terakhir", "6 Bulan Terakhir", "1 Tahun Terakhir"], horizontal=True)
-#     mapping = {"1 Minggu Terakhir": 7, "2 Minggu Terakhir": 14, "1 Bulan Terakhir": 30, "3 Bulan Terakhir": 90, "6 Bulan Terakhir": 180, "1 Tahun Terakhir": 365}
-#     return mapping[range_option]
 
-def choose_sidebar_plot_range():
-    options = [
-        "1 Hari", "7 Hari", "1 Bulan", "3 Bulan", "5 Bulan", 
-        "1 Tahun", "3 Tahun", "5 Tahun", "10 Tahun", "All Time"
-    ]
-    range_option = st.sidebar.radio("Pilih rentang visualisasi", options, horizontal=True)
-    
-    mapping = {
-        "1 Hari": 1, 
-        "7 Hari": 7, 
-        "1 Bulan": 30, 
-        "3 Bulan": 90, 
-        "5 Bulan": 150, 
-        "1 Tahun": 365,
-        "3 Tahun": 1095,   # 365 * 3
-        "5 Tahun": 1825,   # 365 * 5
-        "10 Tahun": 3650,  # 365 * 10
-        "All Time": 99999  # Angka besar untuk mencakup seluruh history data
-    }
-    return mapping[range_option]
+def choose_sidebar_plot_range(default: str = "3M") -> int:
+    return choose_plot_range(default=default, sidebar=True)
 
-def display_side_by_side_metrics(eval_metrics):
-    """
-    Menampilkan metrik komparasi (MAE, MAPE, RMSE, CI Coverage) 
-    untuk ketiga model secara berdampingan.
-    """
+
+# ─────────────────────────────────────────────
+# Kept for backward compatibility
+# ─────────────────────────────────────────────
+def display_side_by_side_metrics(eval_metrics: dict):
     if not eval_metrics:
         st.warning("Metrik evaluasi belum tersedia.")
         return
-        
-    st.markdown("### Perbandingan Performa Model")
-    
-    # Ubah dictionary hasil evaluasi menjadi DataFrame agar rapi
-    df_metrics = pd.DataFrame(eval_metrics).T
-    
-    # Format angkanya supaya enak dibaca
-    df_metrics['MAE'] = df_metrics['MAE'].apply(lambda x: f"Rp {x:,.2f}")
-    df_metrics['RMSE'] = df_metrics['RMSE'].apply(lambda x: f"Rp {x:,.2f}")
-    df_metrics['MAPE'] = df_metrics['MAPE'].apply(lambda x: f"{x:.2f}%")
-    df_metrics['CI Coverage'] = df_metrics['CI Coverage'].apply(lambda x: f"{x:.0f}%")
-    
-    # Tampilkan tabel di Streamlit
-    st.dataframe(df_metrics, use_container_width=True)
+    df_m = pd.DataFrame(eval_metrics).T
+    df_m["MAE"]         = df_m["MAE"].apply(lambda x: f"Rp {x:,.2f}")
+    df_m["RMSE"]        = df_m["RMSE"].apply(lambda x: f"Rp {x:,.2f}")
+    df_m["MAPE"]        = df_m["MAPE"].apply(lambda x: f"{x:.2f}%")
+    df_m["CI Coverage"] = df_m["CI Coverage"].apply(lambda x: f"{x:.0f}%")
+    st.dataframe(df_m, use_container_width=True)
+
+
+# Legacy function (kept for backward compatibility)
+def plot_forex(df_inf, res, currency, n_days=30):
+    """Non-interactive version - redirects to interactive"""
+    return plot_forex_interactive(df_inf, res, currency, n_days)

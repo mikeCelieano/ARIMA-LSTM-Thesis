@@ -4,4 +4,4 @@
 .devcontainer/
 */__pycache__/
 tuning_logs/
-data/models_backup/
+data/models_backup/.claude/
