@@ -99,7 +99,7 @@ class ForexLSTM:
             validation_data=(X_val_seq, y_val_seq),
             epochs=epochs,
             batch_size=batch_size,
-            verbose=0
+            verbose=1
         )
 
         best_hps = tuner.get_best_hyperparameters(1)[0]
@@ -122,7 +122,7 @@ class ForexLSTM:
             epochs=epochs,
             batch_size=batch_size,
             callbacks=[early_stop],
-            verbose=0
+            verbose=1
         )
 
         print("   -> Final training selesai (no overfit).")
@@ -163,7 +163,7 @@ class ForexLSTM:
             X_seq, y_seq,
             epochs=epochs,
             batch_size=batch_size,
-            verbose=0
+            verbose=1
         )
 
     def incremental_train(self, latest_df, latest_exog, epochs=1):
@@ -181,7 +181,7 @@ class ForexLSTM:
         X_seq = np.array([X[-self.sequence_length:]])
         y_seq = np.array([y[-1]])
 
-        self.model.fit(X_seq, y_seq, epochs=epochs, verbose=0)
+        self.model.fit(X_seq, y_seq, epochs=epochs, verbose=1)
 
     def forecast(self, df_recent, exog_recent):
 
@@ -200,7 +200,7 @@ class ForexLSTM:
         X_seq = np.array([X[-self.sequence_length:]])
 
         # 🔴 3. Nilai pred_scaled ini sekarang melambangkan 'Selisih'
-        pred_scaled = self.model.predict(X_seq, verbose=0)
+        pred_scaled = self.model.predict(X_seq, verbose=1)
         pred_delta = self.scaler_y.inverse_transform(pred_scaled)[0][0]
 
         # 🔴 4. REKONSTRUKSI: Harga Asli Terakhir + Prediksi Selisih
