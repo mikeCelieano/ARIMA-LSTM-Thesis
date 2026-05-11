@@ -62,12 +62,7 @@ def get_theme_colors():
 # Hybrid Top Bar + Collapsible Sidebar
 # ═════════════════════════════════════════════
 def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", model="ARIMA", mode="Tuning"):
-    """Inject navbar via components.html() JavaScript only.
-
-    Both CSS and HTML are written into window.parent.document directly,
-    avoiding st.markdown() which renders <style> content as visible text
-    and whose containers break position:fixed.
-    """
+    """Inject navbar via components.html() JavaScript only."""
     init_session()
     colors = get_theme_colors()
 
@@ -84,8 +79,8 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
             f'</div>'
         )
 
+    # CSS Khusus Navbar (Sembunyikan UI bawaan sudah dipindah ke inject_theme)
     css = (
-        f'[data-testid="stSidebar"],[data-testid="stHeader"]{{display:none!important}}'
         f'.gree-top-bar{{position:fixed;top:0;left:0;right:0;height:60px;'
         f'background:{colors["bg_card"]};border-bottom:1px solid {colors["border_light"]};'
         f'display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;'
@@ -190,7 +185,23 @@ def inject_theme():
     colors = get_theme_colors()
     
     css_style = textwrap.dedent(f"""<link href="{FONT_URL}" rel="stylesheet"><style>
-        :root {{
+    /* TRIK FADE-IN: Sembunyikan semuanya sebentar, lalu munculkan setelah CSS kita siap */
+    [data-testid="stAppViewContainer"] {{
+        animation: fadeInLayout 0.5s ease-in-out forwards;
+    }}
+    
+    @keyframes fadeInLayout {{
+        0% {{ opacity: 0; visibility: hidden; }}
+        70% {{ opacity: 0; visibility: hidden; }} 
+        100% {{ opacity: 1; visibility: visible; }}
+    }}
+
+    /* Sembunyikan bawaan Streamlit secepat mungkin */
+    [data-testid="stSidebar"], [data-testid="stHeader"] {{
+        display: none !important;
+    }}
+
+    :root {{
         --teal:   #00d4aa;
         --red:    #f04b64;
         --gold:   #f0b429;
@@ -336,4 +347,3 @@ def section_label(text: str):
     <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;
     color:{colors['txt3']};margin:1.5rem 0 0.8rem 0;">{text}</div>
     """, unsafe_allow_html=True)
-
