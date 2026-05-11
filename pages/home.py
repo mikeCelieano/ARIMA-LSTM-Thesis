@@ -4,7 +4,7 @@ from utils.theme import inject_theme, render_hybrid_navbar
 inject_theme()
 render_hybrid_navbar(show_prediction_controls=False)
 
-st.markdown("<h1>💸 BAM Board: Forex Closing Price Prediction System</h1>", unsafe_allow_html=True)
+st.markdown("<h1>🪙 BAM Board: Forex Closing Price Prediction System</h1>", unsafe_allow_html=True)
 st.divider()
 
 st.subheader("About BAM Board")

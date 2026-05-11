@@ -115,7 +115,7 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
         f'<div class="gree-top-bar">'
         f'<div class="gree-top-bar-left">'
         f'<span class="gree-hamburger">&#9776;</span>'
-        f'<span class="gree-brand">&#128184; BAM Board</span>'
+        f'<span class="gree-brand">&#129689; BAM Board</span>'
         f'{controls_html}'
         f'</div>'
         f'<span class="gree-theme-toggle">{theme_icon}</span>'
