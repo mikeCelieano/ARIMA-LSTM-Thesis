@@ -7,9 +7,9 @@ from utils.theme import inject_theme, render_hybrid_navbar
 inject_theme()
 render_hybrid_navbar(show_prediction_controls=False)
 
-st.header("Analisis Historis")
+st.header("Historical Analysis")
 
-currency = st.radio("Pilih Mata Uang", ["USD/IDR", "EUR/IDR", "GBP/IDR"], horizontal=True)
+currency = st.radio("Currency Pair", ["USD/IDR", "EUR/IDR", "GBP/IDR"], horizontal=True)
 
 if 'current_df' not in st.session_state or st.session_state.get('last_currency') != currency:
     df = df_map[currency]()
@@ -18,7 +18,7 @@ if 'current_df' not in st.session_state or st.session_state.get('last_currency')
 else:
     df = st.session_state.current_df
 
-if st.button("📊 Tampilkan Grafik"):
+if st.button("📊 Show Chart"):
     st.session_state.show_analysis = True
 
 if st.session_state.get('show_analysis'):

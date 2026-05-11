@@ -2,7 +2,7 @@ import streamlit as st
 
 # 1. WAJIB: Perintah Streamlit pertama di file entry point
 st.set_page_config(
-    page_title="Gree | Forex Prediction",
+    page_title="BAM Board | Forex Prediction",
     page_icon="💸",
     layout="wide"
 )

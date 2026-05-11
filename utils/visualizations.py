@@ -326,7 +326,7 @@ def choose_plot_range(default: str = "3M", sidebar: bool = False) -> int:
         st.session_state.plot_range = default
     radio = st.sidebar.radio if sidebar else st.radio
     selected = radio(
-        "Rentang Grafik" if sidebar else "Rentang",
+        "Time Range" if sidebar else "Range",
         _RANGE_OPTIONS, horizontal=True,
         index=_RANGE_OPTIONS.index(st.session_state.plot_range),
         label_visibility="collapsed",
@@ -344,7 +344,7 @@ def choose_sidebar_plot_range(default: str = "3M") -> int:
 # ─────────────────────────────────────────────
 def display_side_by_side_metrics(eval_metrics: dict):
     if not eval_metrics:
-        st.warning("Metrik evaluasi belum tersedia.")
+        st.warning("Evaluation metrics not available.")
         return
     df_m = pd.DataFrame(eval_metrics).T
     df_m["MAE"]         = df_m["MAE"].apply(lambda x: f"Rp {x:,.2f}")

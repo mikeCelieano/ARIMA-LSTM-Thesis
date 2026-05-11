@@ -57,11 +57,11 @@ def fetch_forex_investing(base_curr):
 
     try:
         df = pd.read_csv(file_path)
-        
+
         # 1. Konversi Tanggal
         df["Date"] = pd.to_datetime(df["Date"], format="%m/%d/%Y", errors='coerce').dt.tz_localize(None)
         df = df.dropna(subset=['Date']).set_index("Date").sort_index()
-        
+
         # 2. Membersihkan angka (Open, High, Low, Price)
         target_cols = ["Price", "Open", "High", "Low"]
         for col in target_cols:
@@ -71,7 +71,7 @@ def fetch_forex_investing(base_curr):
                     .str.replace(',', '', regex=False)
                     .astype(float)
                 )
-        
+
         # 3. Membersihkan Change % (Contoh: "+0.15%" -> 0.15)
         if "Change %" in df.columns:
             df["Change %"] = (
@@ -80,10 +80,10 @@ def fetch_forex_investing(base_curr):
                 .str.replace('+', '', regex=False)
                 .astype(float)
             )
-        
+
         # 4. Standarisasi Nama Kolom
         df = df.rename(columns={"Price": "Close Price"})
-        
+
         # Sekarang kita return 5 kolom!
         return df[["Open", "High", "Low", "Close Price", "Change %"]]
         

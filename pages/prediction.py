@@ -22,7 +22,7 @@ if 'last_settings' not in st.session_state:
 col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
 
 with col1:
-    currency = st.selectbox("💱 Mata Uang", ["USD/IDR", "EUR/IDR", "GBP/IDR"])
+    currency = st.selectbox("💱 Currency", ["USD/IDR", "EUR/IDR", "GBP/IDR"])
 
 with col2:
     selected_model = st.selectbox("⚙️ Model", ["ARIMA-LSTM Hybrid", "ARIMA", "LSTM"])
@@ -64,14 +64,14 @@ df = df_map[currency]()
 last_date = df.index[-1]
 future_dates = pd.date_range(start=last_date + timedelta(days=1), periods=1, freq=custom_bd)
 
-st.sidebar.markdown(f"**Data Terakhir:** {last_date.strftime('%d %b %Y')}")
-st.sidebar.markdown(f"**Target Prediksi:** {future_dates[0].strftime('%d %b %Y')}")
+st.sidebar.markdown(f"**Latest Data:** {last_date.strftime('%d %b %Y')}")
+st.sidebar.markdown(f"**Prediction Target:** {future_dates[0].strftime('%d %b %Y')}")
 
 # ─────────────────────────────────────────────
 # AUTO-RUN PREDICTION
 # ─────────────────────────────────────────────
 if not st.session_state.predicted or settings_changed:
-    with st.spinner("⏳ Memproses prediksi..."):
+    with st.spinner("⏳ Running prediction..."):
         try:
             df_inf, exog_inf = prepare_inference_data(df)
             manager = ModelManager(currency, mode=model_mode)
@@ -82,7 +82,7 @@ if not st.session_state.predicted or settings_changed:
                 st.session_state.exog_inf = exog_inf
                 st.session_state.predicted = True
             else:
-                st.error("⚠️ Model tidak ditemukan!")
+                st.error("⚠️ Model not found!")
                 st.stop()
         except Exception as e:
             st.error(f"Error: {e}")
@@ -91,7 +91,7 @@ if not st.session_state.predicted or settings_changed:
 # ─────────────────────────────────────────────
 # Main Display
 # ─────────────────────────────────────────────
-st.header(f"Prediksi {currency}")
+st.header(f"{currency} Prediction")
 
 res = st.session_state.all_results[selected_model]
 df_inf = st.session_state.inference_df
@@ -103,7 +103,7 @@ pct = (delta / last_price) * 100
 
 # Metrics
 col1, col2, col3 = st.columns(3)
-col1.metric("Prediksi", f"Rp {pred_price:,.2f}", f"{delta:+,.2f} ({pct:+.2f}%)")
+col1.metric("Prediction", f"Rp {pred_price:,.2f}", f"{delta:+,.2f} ({pct:+.2f}%)")
 col2.metric("Upper CI", f"Rp {res['upper_ci']:,.2f}")
 col3.metric("Lower CI", f"Rp {res['lower_ci']:,.2f}")
 
@@ -113,9 +113,9 @@ st.plotly_chart(fig, use_container_width=True, config=_INTERACTIVE_CFG)
 
 # Metrics evaluation
 st.markdown("---")
-st.subheader("📊 Evaluasi Model (30 Hari Terakhir)")
+st.subheader("📊 Model Evaluation (Last 30 Days)")
 
-with st.spinner("Menghitung metrik..."):
+with st.spinner("Calculating metrics..."):
     try:
         eval_res = get_dynamic_metrics(currency, df_inf, exog_inf, model_mode, selected_model, 30)
         if eval_res:
@@ -126,4 +126,4 @@ with st.spinner("Menghitung metrik..."):
             c3.metric("MAPE", f"{m['MAPE']:.2f}%")
             c4.metric("CI Coverage", f"{m['CI Coverage']:.0f}%")
     except Exception as e:
-        st.warning(f"Gagal menghitung metrik: {e}")
+        st.warning(f"Failed to calculate metrics: {e}")

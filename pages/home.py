@@ -4,40 +4,40 @@ from utils.theme import inject_theme, render_hybrid_navbar
 inject_theme()
 render_hybrid_navbar(show_prediction_controls=False)
 
-st.markdown("<h1>💸 Gree: Sistem Prediksi Harga Penutupan Valuta Asing</h1>", unsafe_allow_html=True)
+st.markdown("<h1>💸 BAM Board: Forex Closing Price Prediction System</h1>", unsafe_allow_html=True)
 st.divider()
 
-st.subheader("Tentang Gree")
+st.subheader("About BAM Board")
 st.markdown("""
-    Gree adalah sistem yang dirancang untuk memberikan **informasi prediktif** mengenai 
-    **harga penutupan valuta asing terhadap Rupiah (IDR)**.
-    
-    Nilai tukar yang didukung:
+    BAM Board is a system designed to provide **predictive information** about
+    **forex closing prices against the Indonesian Rupiah (IDR)**.
+
+    Supported exchange rates:
     - **USD/IDR**
     - **EUR/IDR**
     - **GBP/IDR**
 """)
 
 st.write("")
-st.subheader("Fitur Utama")
-st.markdown("##### 📈 Prediksi Harga Penutupan")
+st.subheader("Key Features")
+st.markdown("##### 📈 Closing Price Prediction")
 st.markdown("""
-    Prediksi harga penutupan 1 hari ke depan menggunakan model ARIMA, LSTM, dan Hybrid.
+    Forecasts the next-day closing price using ARIMA, LSTM, and Hybrid models.
 """)
 
 st.write("")
-st.subheader("Sumber Data")
+st.subheader("Data Sources")
 st.markdown("""
-    **1. Data Harga Forex**
-    - Sumber: *Investing.com* 🔗 https://www.investing.com/
-    
-    **2. Variabel Eksternal**
-    - Inflasi & BI Rate
-    - Sumber: *Bank Indonesia* 🔗 https://www.bi.go.id/
+    **1. Forex Price Data**
+    - Source: *Investing.com* 🔗 https://www.investing.com/
+
+    **2. External Variables**
+    - Inflation & BI Rate
+    - Source: *Bank Indonesia* 🔗 https://www.bi.go.id/
 """)
 
 st.divider()
 st.caption(
-    "⚠️ Sistem ini dikembangkan sebagai bagian dari tugas akhir akademik. "
-    "Hasil prediksi bersifat informatif dan bukan rekomendasi investasi."
+    "⚠️ This system was developed as part of an academic thesis. "
+    "Predictions are for informational purposes only and do not constitute investment advice."
 )
