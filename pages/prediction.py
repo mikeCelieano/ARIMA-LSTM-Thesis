@@ -31,7 +31,7 @@ with col3:
     model_mode = st.selectbox("🧠 Mode", ["Tuning", "Non-Tuning"])
 
 with col4:
-    n_days_options = {"7D": 7, "1M": 30, "3M": 90, "1Y": 365}
+    n_days_options = {"1D": 1, "1W": 7, "1M": 30, "3M": 90, "1Y": 365, "3Y": 1095, "5Y": 1825, "All": 9999}
     n_days_label = st.selectbox("📅 Range", list(n_days_options.keys()), index=1)
     n_days = n_days_options[n_days_label]
 
