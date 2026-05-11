@@ -1,0 +1,53 @@
+name: Daily Forex Model Training
+
+# Kapan skrip ini akan dijalankan?
+on:
+  schedule:
+    # Berjalan setiap jam 00:00 WIB (karena server GitHub pakai UTC, 00:00 WIB = 17:00 UTC)
+    - cron: '0 17 * * *' 
+  workflow_dispatch: # Memungkinkan kamu memicu proses ini secara manual dari tombol di GitHub
+
+permissions:
+  contents: write
+
+jobs:
+  train_and_update:
+    runs-on: ubuntu-latest # Menggunakan server Linux gratis dari GitHub
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.9' 
+          cache: 'pip' # Mempercepat instalasi harian
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # JIKA ADA API KEY atau CREDENTIALS (Hapus blok ini jika tidak pakai API rahasia)
+      # - name: Setup Environment Variables
+      #   env:
+      #     SECRET_KEY: ${{ secrets.API_KEY_BI }}
+      #   run: echo "Env variables set"
+
+      - name: 🧠 Run daily training pipeline
+        run: |
+          # Perintah ini akan menjalankan skrip scraping dan training kamu
+          python pipelines/train_daily.py
+
+      - name: 🚀 Commit and Push updated models
+        run: |
+          # Konfigurasi identitas bot GitHub
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          
+          # Tambahkan semua perubahan (file model .pkl / .h5 yang baru)
+          git add .
+          
+          # Cek apakah ada perubahan. Jika skrip gagal/tidak ada model baru, lewati komit
+          git diff --quiet && git diff --staged --quiet || (git commit -m "🤖 Auto-update daily forex models [skip ci]" && git push)

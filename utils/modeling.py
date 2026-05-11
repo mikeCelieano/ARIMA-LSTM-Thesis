@@ -103,8 +103,14 @@ def arimax_1_horizon(df, exog, p, d, q, step, currency):
 
     model_fit = model.fit(disp=False)
 
+    # future_dates = pd.date_range(
+    #     start=last_date + timedelta(days=1),
+    #     periods=step,
+    #     freq=custom_bd
+    # )
+
     future_dates = pd.date_range(
-        start=last_date + timedelta(days=1),
+        start=last_date + custom_bd,  # <-- Triknya di sini (langsung tambah custom_bd)
         periods=step,
         freq=custom_bd
     )

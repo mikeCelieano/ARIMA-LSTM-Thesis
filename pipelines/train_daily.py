@@ -17,7 +17,8 @@ from selenium.webdriver.support import expected_conditions as EC
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import fungsi loader baru yang baca dari CSV lokal
-from utils.data_loader import fetch_forex_investing, combine_exog, create_price_features
+from utils.data_loader import fetch_forex_investing, combine_exog
+from utils.features import create_price_features
 from models.model_manager import ModelManager
 
 import warnings 

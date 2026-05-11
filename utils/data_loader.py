@@ -9,7 +9,7 @@ import os
 import logging # Tambahan untuk logging error ke terminal
 from dotenv import load_dotenv
 
-years = range(2025, 2026)
+years = range(2025, 2027)
 id_holidays = holidays.Indonesia(years=years)
 holiday_dates = pd.to_datetime(list(id_holidays.keys()))
 custom_bd = CustomBusinessDay(holidays=holiday_dates)
