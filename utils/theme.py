@@ -62,11 +62,9 @@ def get_theme_colors():
 # Hybrid Top Bar + Collapsible Sidebar
 # ═════════════════════════════════════════════
 def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", model="ARIMA", mode="Tuning"):
-    """Inject navbar via components.html() JavaScript only."""
+    """Inject navbar via components.html() - sidebar slides in/out on hamburger click."""
     init_session()
     colors = get_theme_colors()
-
-    sidebar_width = "60px" if st.session_state.sidebar_collapsed else "220px"
 
     controls_html = ""
     if show_prediction_controls:
@@ -78,54 +76,68 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
             f'</div>'
         )
 
-    # PERUBAHAN 1: Penambahan Media Queries di CSS Navbar
     css = (
+        # Top bar
         f'.gree-top-bar{{position:fixed;top:0;left:0;right:0;height:60px;'
         f'background:{colors["bg_card"]};border-bottom:1px solid {colors["border_light"]};'
         f'display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;'
         f'z-index:99999;backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,.06);'
         f'font-family:"DM Sans",sans-serif;box-sizing:border-box}}'
         f'.gree-top-bar-left{{display:flex;align-items:center;gap:1rem}}'
-        f'.gree-hamburger{{font-size:1.4rem;cursor:pointer;color:{colors["txt2"]};'
-        f'user-select:none;transition:color .2s}}'
-        f'.gree-hamburger:hover{{color:#00d4aa}}'
+        f'.gree-hamburger{{font-size:1.6rem;cursor:pointer;color:{colors["txt2"]};'
+        f'user-select:none;transition:color .2s;padding:.3rem .5rem;border-radius:6px;'
+        f'display:inline-flex;align-items:center;justify-content:center}}'
+        f'.gree-hamburger:hover{{color:#00d4aa;background:{colors["bg_surface"]}}}'
         f'.gree-brand{{font-family:"Syne",sans-serif;font-size:1.3rem;font-weight:800;'
         f'color:{colors["txt1"]};letter-spacing:-.02em}}'
         f'.gree-prediction-controls{{display:flex;gap:.6rem;align-items:center}}'
         f'.gree-control-badge{{background:{colors["bg_surface"]};border:1px solid {colors["border"]};'
         f'border-radius:6px;padding:.35rem .75rem;font-size:.78rem;color:{colors["txt2"]};font-weight:500}}'
-        f'.gree-theme-toggle{{background:{colors["bg_surface"]};border:1px solid {colors["border"]};'
-        f'border-radius:8px;padding:.45rem .9rem;font-size:1.1rem;cursor:pointer;'
-        f'user-select:none;transition:border-color .2s}}'
-        f'.gree-nav-sidebar{{position:fixed;left:0;top:60px;bottom:0;width:{sidebar_width};'
+
+        # Sidebar — HIDDEN by default, slides in when .is-open is added
+        f'.gree-nav-sidebar{{position:fixed;left:0;top:60px;bottom:0;width:240px;'
         f'background:{colors["bg_surface"]};border-right:1px solid {colors["border_light"]};'
-        f'transition:width .3s ease, transform 0.3s ease;overflow-x:hidden;z-index:99998; white-space:nowrap;}}'
-        f'.gree-nav-item{{display:flex;align-items:center;gap:1rem;padding:.9rem 1.2rem;'
+        f'transform:translateX(-100%);transition:transform .3s cubic-bezier(.4,0,.2,1);'
+        f'overflow-y:auto;overflow-x:hidden;z-index:99998;white-space:nowrap;'
+        f'box-shadow:4px 0 20px rgba(0,0,0,0.3)}}'
+        f'.gree-nav-sidebar.is-open{{transform:translateX(0)}}'
+
+        # Backdrop — appears with sidebar
+        f'.gree-backdrop{{position:fixed;top:60px;left:0;right:0;bottom:0;'
+        f'background:rgba(0,0,0,0.4);opacity:0;visibility:hidden;'
+        f'transition:opacity .3s, visibility .3s;z-index:99997}}'
+        f'.gree-backdrop.is-open{{opacity:1;visibility:visible}}'
+
+        # Nav items
+        f'.gree-nav-item{{display:flex;align-items:center;gap:1rem;padding:.9rem 1.4rem;'
         f'color:{colors["txt2"]};text-decoration:none;font-family:"DM Sans",sans-serif;'
-        f'font-size:.9rem;transition:all .2s;border-left:3px solid transparent;}}'
+        f'font-size:.95rem;transition:all .2s;border-left:3px solid transparent}}'
         f'.gree-nav-item:hover{{background:{colors["bg_elevated"]};color:#00d4aa;border-left-color:#00d4aa}}'
         f'.gree-nav-icon{{font-size:1.3rem;min-width:24px;text-align:center}}'
-        f'[data-testid="stAppViewContainer"]>.main{{margin-left:{sidebar_width}!important;'
-        f'margin-top:60px!important;padding:1.5rem 2rem!important;transition:margin-left .3s ease}}'
 
+        # Main content: never shifts, sidebar overlays
+        f'[data-testid="stAppViewContainer"]>.main{{margin-top:60px!important;'
+        f'padding:1.5rem 2rem!important}}'
+
+        # Mobile
         f'@media (max-width: 768px) {{'
-        f'  .gree-prediction-controls {{ display: none !important; }}' # Sembunyikan lencana kontrol agar tidak nabrak
+        f'  .gree-prediction-controls {{ display: none !important; }}'
         f'  .gree-brand {{ font-size: 1.1rem; }}'
         f'  .gree-top-bar {{ padding: 0 1rem; }}'
-        f'  .gree-nav-sidebar {{ width: 0 !important; border-right: none; }}' # Default tutup di HP
-        f'  .gree-nav-sidebar.mobile-open {{ width: 220px !important; border-right: 1px solid {colors["border_light"]}; box-shadow: 4px 0 15px rgba(0,0,0,0.5); }}'
-        f'  [data-testid="stAppViewContainer"]>.main {{ margin-left: 0 !important; padding: 1rem 1rem !important; }}' # Konten full width
+        f'  [data-testid="stAppViewContainer"]>.main {{ padding: 1rem 1rem !important; }}'
         f'}}'
     )
 
     navbar_html = (
         f'<div class="gree-top-bar">'
         f'<div class="gree-top-bar-left">'
-        f'<span class="gree-hamburger">&#9776;</span>'
+        f'<span class="gree-hamburger" id="gree-hamburger-btn">&#9776;</span>'
         f'<span class="gree-brand">&#129689; BAM Board</span>'
         f'{controls_html}'
         f'</div>'
-        f'<nav class="gree-nav-sidebar">'
+        f'</div>'
+        f'<div class="gree-backdrop" id="gree-backdrop"></div>'
+        f'<nav class="gree-nav-sidebar" id="gree-sidebar">'
         f'<a href="/" target="_self" class="gree-nav-item"><span class="gree-nav-icon">&#127968;</span><span>Home</span></a>'
         f'<a href="/prediction" target="_self" class="gree-nav-item"><span class="gree-nav-icon">&#128302;</span><span>Prediction</span></a>'
         f'<a href="/eda" target="_self" class="gree-nav-item"><span class="gree-nav-icon">&#128202;</span><span>EDA &amp; Insights</span></a>'
@@ -133,14 +145,12 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
         f'</nav>'
     )
 
-    # PERUBAHAN 2: Logika JavaScript Cerdas
-# LOGIKA JAVASCRIPT RESPONSIVE (YANG BENAR)
     components.html(
         f"""<script>
         (function() {{
             var doc = window.parent.document;
 
-            // Inject font
+            // Inject font once
             if (!doc.getElementById('gree-font')) {{
                 var lnk = doc.createElement('link');
                 lnk.id = 'gree-font';
@@ -158,35 +168,65 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
             }}
             style.textContent = {json.dumps(css)};
 
-            // Inject / update navbar HTML
+            // Remove old navbar
             var old = doc.getElementById('gree-navbar');
             if (old) old.remove();
+
+            // Inject new navbar
             var el = doc.createElement('div');
             el.id = 'gree-navbar';
             el.innerHTML = {json.dumps(navbar_html)};
             doc.body.prepend(el);
 
-            // Responsive Hamburger Logic
-            el.querySelector('.gree-hamburger').addEventListener('click', function() {{
-                var sidebar = doc.querySelector('.gree-nav-sidebar');
-                var main = doc.querySelector('[data-testid="stAppViewContainer"] > .main');
-                var isMobile = window.innerWidth <= 768; // Deteksi layar HP/Tablet
+            // Grab fresh references
+            var btn = doc.getElementById('gree-hamburger-btn');
+            var sidebar = doc.getElementById('gree-sidebar');
+            var backdrop = doc.getElementById('gree-backdrop');
 
-                if (isMobile) {{
-                    // Di HP: Beri class 'mobile-open' agar CSS menimpa width: 0 menjadi width: 220px !important
-                    sidebar.classList.toggle('mobile-open');
-                }} else {{
-                    // Di Laptop: Geser konten utama secara normal
-                    var collapsed = sidebar.offsetWidth < 100;
-                    var w = collapsed ? '220px' : '60px';
-                    sidebar.style.width = w;
-                    if (main) main.style.marginLeft = w;
+            if (!btn || !sidebar || !backdrop) {{
+                console.error('[BAM] Navbar elements missing');
+                return;
+            }}
+
+            // Restore previous open state (survives Streamlit rerun)
+            try {{
+                if (window.parent.localStorage.getItem('gree-sidebar-open') === '1') {{
+                    sidebar.classList.add('is-open');
+                    backdrop.classList.add('is-open');
                 }}
+            }} catch(e) {{}}
+
+            function toggleSidebar() {{
+                var isOpen = sidebar.classList.toggle('is-open');
+                backdrop.classList.toggle('is-open', isOpen);
+                try {{
+                    window.parent.localStorage.setItem('gree-sidebar-open', isOpen ? '1' : '0');
+                }} catch(e) {{}}
+            }}
+
+            function closeSidebar() {{
+                sidebar.classList.remove('is-open');
+                backdrop.classList.remove('is-open');
+                try {{
+                    window.parent.localStorage.setItem('gree-sidebar-open', '0');
+                }} catch(e) {{}}
+            }}
+
+            btn.addEventListener('click', function(e) {{
+                e.preventDefault();
+                e.stopPropagation();
+                toggleSidebar();
             }});
 
+            backdrop.addEventListener('click', closeSidebar);
+
+            // Close sidebar when a nav link is clicked (before navigating)
+            sidebar.querySelectorAll('.gree-nav-item').forEach(function(link) {{
+                link.addEventListener('click', closeSidebar);
+            }});
         }})();
         </script>""",
-        height=0,
+        height=1,
         scrolling=False,
     )
 
