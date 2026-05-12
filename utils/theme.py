@@ -125,7 +125,6 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
         f'<span class="gree-brand">&#129689; BAM Board</span>'
         f'{controls_html}'
         f'</div>'
-        f'</div>'
         f'<nav class="gree-nav-sidebar">'
         f'<a href="/" target="_self" class="gree-nav-item"><span class="gree-nav-icon">&#127968;</span><span>Home</span></a>'
         f'<a href="/prediction" target="_self" class="gree-nav-item"><span class="gree-nav-icon">&#128302;</span><span>Prediction</span></a>'
