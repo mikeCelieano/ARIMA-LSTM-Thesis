@@ -66,7 +66,6 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
     init_session()
     colors = get_theme_colors()
 
-    theme_icon = "☀️" if st.session_state.theme_mode == 'dark' else "🌙"
     sidebar_width = "60px" if st.session_state.sidebar_collapsed else "220px"
 
     controls_html = ""
@@ -108,7 +107,7 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
         f'.gree-nav-icon{{font-size:1.3rem;min-width:24px;text-align:center}}'
         f'[data-testid="stAppViewContainer"]>.main{{margin-left:{sidebar_width}!important;'
         f'margin-top:60px!important;padding:1.5rem 2rem!important;transition:margin-left .3s ease}}'
-        
+
         f'@media (max-width: 768px) {{'
         f'  .gree-prediction-controls {{ display: none !important; }}' # Sembunyikan lencana kontrol agar tidak nabrak
         f'  .gree-brand {{ font-size: 1.1rem; }}'
@@ -132,7 +131,6 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
         f'<a href="/" target="_self" class="gree-nav-item"><span class="gree-nav-icon">&#127968;</span><span>Home</span></a>'
         f'<a href="/prediction" target="_self" class="gree-nav-item"><span class="gree-nav-icon">&#128302;</span><span>Prediction</span></a>'
         f'<a href="/eda" target="_self" class="gree-nav-item"><span class="gree-nav-icon">&#128202;</span><span>EDA &amp; Insights</span></a>'
-        f'<a href="/historical_analysis" target="_self" class="gree-nav-item"><span class="gree-nav-icon">&#128200;</span><span>Historical Analysis</span></a>'
         f'<a href="/guide" target="_self" class="gree-nav-item"><span class="gree-nav-icon">&#128214;</span><span>Guide</span></a>'
         f'</nav>'
     )
