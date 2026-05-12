@@ -46,10 +46,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 2. Definisi Halaman (Atur judul dan ikon di sini)
-home_page = st.Page("pages/home.py", title="Home", icon="🏠", default=True)
-guide_page = st.Page("pages/guide.py", title="Guide", icon="💻")
-prediction_page = st.Page("pages/prediction.py", title="Prediction", icon="📈")
-eda_page = st.Page("pages/eda.py", title="EDA & Insights", icon="📊")
+home_page = st.Page("_pages/home.py", title="Home", icon="🏠", default=True)
+guide_page = st.Page("_pages/guide.py", title="Guide", icon="💻")
+prediction_page = st.Page("_pages/prediction.py", title="Prediction", icon="📈")
+eda_page = st.Page("_pages/eda.py", title="EDA & Insights", icon="📊")
 # 3. Navigasi
 pg = st.navigation({
     "Main Menu": [home_page, guide_page],
