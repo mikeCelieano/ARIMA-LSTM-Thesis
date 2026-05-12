@@ -121,11 +121,11 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
         f'<span class="gree-theme-toggle">{theme_icon}</span>'
         f'</div>'
         f'<nav class="gree-nav-sidebar">'
-        f'<a href="/" target="_parent" class="gree-nav-item"><span class="gree-nav-icon">&#127968;</span><span>Home</span></a>'
-        f'<a href="/prediction" target="_parent" class="gree-nav-item"><span class="gree-nav-icon">&#128302;</span><span>Prediction</span></a>'
-        f'<a href="/eda" target="_parent" class="gree-nav-item"><span class="gree-nav-icon">&#128202;</span><span>EDA &amp; Insights</span></a>'
-        f'<a href="/historical_analysis" target="_parent" class="gree-nav-item"><span class="gree-nav-icon">&#128200;</span><span>Historical Analysis</span></a>'
-        f'<a href="/guide" target="_parent" class="gree-nav-item"><span class="gree-nav-icon">&#128214;</span><span>Guide</span></a>'
+        f'<a href="/" target="_self" class="gree-nav-item"><span class="gree-nav-icon">&#127968;</span><span>Home</span></a>'
+        f'<a href="/prediction" target="_self" class="gree-nav-item"><span class="gree-nav-icon">&#128302;</span><span>Prediction</span></a>'
+        f'<a href="/eda" target="_self" class="gree-nav-item"><span class="gree-nav-icon">&#128202;</span><span>EDA &amp; Insights</span></a>'
+        f'<a href="/historical_analysis" target="_self" class="gree-nav-item"><span class="gree-nav-icon">&#128200;</span><span>Historical Analysis</span></a>'
+        f'<a href="/guide" target="_self" class="gree-nav-item"><span class="gree-nav-icon">&#128214;</span><span>Guide</span></a>'
         f'</nav>'
     )
 
