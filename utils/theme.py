@@ -134,27 +134,35 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
     )
 
     # PERUBAHAN 2: Logika JavaScript Cerdas
+# LOGIKA JAVASCRIPT RESPONSIVE (YANG BENAR)
     components.html(
         f"""<script>
         (function() {{
             var doc = window.parent.document;
 
+            // Inject font
             if (!doc.getElementById('gree-font')) {{
                 var lnk = doc.createElement('link');
-                lnk.id = 'gree-font'; lnk.rel = 'stylesheet'; lnk.href = {json.dumps(FONT_URL)};
+                lnk.id = 'gree-font';
+                lnk.rel = 'stylesheet';
+                lnk.href = {json.dumps(FONT_URL)};
                 doc.head.appendChild(lnk);
             }}
 
+            // Inject / update CSS
             var style = doc.getElementById('gree-styles');
             if (!style) {{
-                style = doc.createElement('style'); style.id = 'gree-styles';
+                style = doc.createElement('style');
+                style.id = 'gree-styles';
                 doc.head.appendChild(style);
             }}
             style.textContent = {json.dumps(css)};
 
+            // Inject / update navbar HTML
             var old = doc.getElementById('gree-navbar');
             if (old) old.remove();
-            var el = doc.createElement('div'); el.id = 'gree-navbar';
+            var el = doc.createElement('div');
+            el.id = 'gree-navbar';
             el.innerHTML = {json.dumps(navbar_html)};
             doc.body.prepend(el);
 
@@ -162,19 +170,20 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
             el.querySelector('.gree-hamburger').addEventListener('click', function() {{
                 var sidebar = doc.querySelector('.gree-nav-sidebar');
                 var main = doc.querySelector('[data-testid="stAppViewContainer"] > .main');
-                var isMobile = window.innerWidth <= 768;
+                var isMobile = window.innerWidth <= 768; // Deteksi layar HP/Tablet
 
                 if (isMobile) {{
-                    // Mode HP: Jadikan overlay (drawer), konten utama tidak digeser
+                    // Di HP: Beri class 'mobile-open' agar CSS menimpa width: 0 menjadi width: 220px !important
                     sidebar.classList.toggle('mobile-open');
                 }} else {{
-                    // Mode Laptop: Geser konten utama
+                    // Di Laptop: Geser konten utama secara normal
                     var collapsed = sidebar.offsetWidth < 100;
                     var w = collapsed ? '220px' : '60px';
                     sidebar.style.width = w;
                     if (main) main.style.marginLeft = w;
                 }}
             }});
+
         }})();
         </script>""",
         height=0,
