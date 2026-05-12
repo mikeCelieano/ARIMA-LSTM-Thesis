@@ -66,7 +66,6 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
     init_session()
     colors = get_theme_colors()
 
-    theme_icon = "☀️" if st.session_state.theme_mode == 'dark' else "🌙"
     sidebar_width = "60px" if st.session_state.sidebar_collapsed else "220px"
 
     controls_html = ""
@@ -95,10 +94,6 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
         f'.gree-prediction-controls{{display:flex;gap:.6rem;align-items:center}}'
         f'.gree-control-badge{{background:{colors["bg_surface"]};border:1px solid {colors["border"]};'
         f'border-radius:6px;padding:.35rem .75rem;font-size:.78rem;color:{colors["txt2"]};font-weight:500}}'
-        f'.gree-theme-toggle{{background:{colors["bg_surface"]};border:1px solid {colors["border"]};'
-        f'border-radius:8px;padding:.45rem .9rem;font-size:1.1rem;cursor:pointer;'
-        f'user-select:none;transition:border-color .2s}}'
-        f'.gree-theme-toggle:hover{{border-color:#00d4aa}}'
         f'.gree-nav-sidebar{{position:fixed;left:0;top:60px;bottom:0;width:{sidebar_width};'
         f'background:{colors["bg_surface"]};border-right:1px solid {colors["border_light"]};'
         f'transition:width .3s ease;overflow:hidden;z-index:99998}}'
@@ -118,13 +113,11 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
         f'<span class="gree-brand">&#129689; BAM Board</span>'
         f'{controls_html}'
         f'</div>'
-        f'<span class="gree-theme-toggle">{theme_icon}</span>'
         f'</div>'
         f'<nav class="gree-nav-sidebar">'
         f'<a href="/" target="_parent" class="gree-nav-item"><span class="gree-nav-icon">&#127968;</span><span>Home</span></a>'
         f'<a href="/prediction" target="_parent" class="gree-nav-item"><span class="gree-nav-icon">&#128302;</span><span>Prediction</span></a>'
         f'<a href="/eda" target="_parent" class="gree-nav-item"><span class="gree-nav-icon">&#128202;</span><span>EDA &amp; Insights</span></a>'
-        f'<a href="/historical_analysis" target="_parent" class="gree-nav-item"><span class="gree-nav-icon">&#128200;</span><span>Historical Analysis</span></a>'
         f'<a href="/guide" target="_parent" class="gree-nav-item"><span class="gree-nav-icon">&#128214;</span><span>Guide</span></a>'
         f'</nav>'
     )

@@ -8,6 +8,7 @@ from statsmodels.tsa.stattools import acf
 
 from utils.theme import inject_theme, render_hybrid_navbar, get_theme_colors, section_label, page_header
 from utils.data_loader import df_map
+from utils.visualizations import plot_macd, plot_rsi
 
 inject_theme()
 render_hybrid_navbar(show_prediction_controls=False)
@@ -342,11 +343,12 @@ def plot_distribution(df: pd.DataFrame, color: str):
 # ═════════════════════════════════════════════
 # TABS
 # ═════════════════════════════════════════════
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📊 Price Action",
     "📈 Trend & Momentum",
     "🌊 Volatility",
     "📐 Distribution & Stationarity",
+    "📉 Technical Indicators",
 ])
 
 # ─────────────────────────────────────────────
@@ -438,3 +440,58 @@ with tab4:
         "useful context when interpreting model errors that cluster on specific days."
     )
     st.plotly_chart(fig_box, use_container_width=True, config={"displayModeBar": False})
+
+# ─────────────────────────────────────────────
+# TAB 5 — Technical Indicators
+# ─────────────────────────────────────────────
+_TA_RANGE = {
+    "1D": 1, "1W": 7, "1M": 30, "3M": 90,
+    "1Y": 365, "3Y": 1095, "5Y": 1825, "All": 99999,
+}
+
+with tab5:
+    # Time range selector — same style as Prediction page
+    r_col, _ = st.columns([2, 4])
+    with r_col:
+        ta_label = st.selectbox(
+            "Time Range", list(_TA_RANGE.keys()), index=3, key="ta_range",
+            label_visibility="collapsed",
+        )
+    ta_n_days = _TA_RANGE[ta_label]
+
+    # ── MACD ──────────────────────────────────
+    section_label("MACD — Moving Average Convergence Divergence (12 / 26 / 9)")
+    insight_card(
+        "<b>What is MACD?</b> MACD measures the momentum behind a price trend by comparing two "
+        "exponential moving averages — the <b>12-period EMA</b> minus the <b>26-period EMA</b>. "
+        "A 9-period EMA of that result is plotted as the <b>Signal line</b>. "
+        "The <b>histogram</b> shows the gap between them: green bars mean momentum is building upward, "
+        "red bars mean it is fading or reversing."
+        "<br><br>"
+        "<b>How to read it:</b><br>"
+        "• <b>MACD crosses above Signal</b> → bullish crossover — momentum shifting upward<br>"
+        "• <b>MACD crosses below Signal</b> → bearish crossover — momentum shifting downward<br>"
+        "• <b>Both lines above zero</b> → overall uptrend; <b>both below zero</b> → overall downtrend<br>"
+        "• <b>Histogram shrinking</b> → the current trend is losing steam, possible reversal ahead"
+    )
+    plot_macd(df, ta_n_days)
+
+    st.markdown("")
+
+    # ── RSI ───────────────────────────────────
+    section_label("RSI — Relative Strength Index (14-period)")
+    insight_card(
+        "<b>What is RSI?</b> RSI is a momentum oscillator that scores recent price strength on a "
+        "scale from <b>0 to 100</b>. It answers the question: <i>\"Has this currency moved too far, "
+        "too fast?\"</i> — helping spot potential turning points before they happen."
+        "<br><br>"
+        "<b>How to read it:</b><br>"
+        "• <b>RSI above 70 (red zone)</b> → Overbought — the price has risen sharply and may be "
+        "due for a pullback or consolidation<br>"
+        "• <b>RSI below 30 (green zone)</b> → Oversold — the price has fallen sharply and may be "
+        "due for a bounce or recovery<br>"
+        "• <b>RSI around 50</b> → Neutral — no strong momentum signal in either direction<br>"
+        "• <b>Divergence</b>: if the price makes a new high but RSI does not, that is a warning sign "
+        "that the uptrend may be weakening"
+    )
+    plot_rsi(df, ta_n_days)
