@@ -1,0 +1,66 @@
+name: Daily Forex Model Training
+
+on:
+  schedule:
+    - cron: '0 17 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  train_and_update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.9'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run daily training pipeline
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          PYTHONUNBUFFERED: "1"
+          TF_CPP_MIN_LOG_LEVEL: "2"
+          CI: "true"
+        run: python pipelines/train_daily.py
+
+      - name: Stage updated artifacts
+        id: stage
+        run: |
+          # Tambah hanya folder output yang relevan — JANGAN pakai `git add .`
+          # supaya tidak menambahkan .env, __pycache__, .DS_Store
+          git add saved_models/ 2>/dev/null || true
+          git add data/ 2>/dev/null || true
+          git add tuning_logs/ 2>/dev/null || true
+
+          if git diff --staged --quiet; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "Tidak ada perubahan untuk di-commit."
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            echo "Perubahan yang akan di-commit:"
+            git diff --staged --stat
+          fi
+
+      - name: Commit and push
+        if: steps.stage.outputs.has_changes == 'true'
+        run: |
+          git config --global user.name  'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git commit -m "🤖 Auto-update daily forex models [skip ci]"
+          git push
