@@ -40,6 +40,9 @@ if 'eda_currency' not in st.session_state:
 # ─────────────────────────────────────────────
 # Currency selector
 # ─────────────────────────────────────────────
+
+c_sel, _ = st.columns([1, 3])
+
 with c_sel:
     # Tambahkan parameter `key` agar sinkron dengan session state
     currency = st.selectbox(
