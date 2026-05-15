@@ -10,23 +10,59 @@ def get_ram_usage():
     process = psutil.Process(os.getpid())
     return process.memory_info().rss / (1024 * 1024)
 
-st.title("🖥️ System Monitor")
+if 'mem_history' not in st.session_state:
+    st.session_state.mem_history = []
+
+current_mem = get_ram_usage()
+st.session_state.mem_history.append(current_mem)
+
+if len(st.session_state.mem_history) > 20:
+    st.session_state.mem_history.pop(0)
+
+st.title("🖥️ System Monitor & Diagnostic")
+st.info("This monitor helps track RAM server usage in real-time.")
+
+st.subheader("📈 Memory Usage Trend")
+st.line_chart(st.session_state.mem_history)
+
+ram_percent = (current_mem / 1024) * 100
+
+col1, col2 = st.columns(2)
+with col1:
+    st.metric(
+        label="Current RAM Usage", 
+        value=f"{current_mem:.2f} MB",
+        delta=f"{(current_mem - st.session_state.mem_history[-2] if len(st.session_state.mem_history) > 1 else 0):.2f} MB",
+        delta_color="normal"
+    )
+
+with col2:
+    st.metric(
+        label="Capacity Used", 
+        value=f"{ram_percent:.1f} %",
+        delta="Limit: 1024 MB",
+        delta_color="off"
+    )
+
 st.divider()
+st.subheader("🔍 Diagnostic Insights")
 
-ram_mb = get_ram_usage()
-ram_percent = (ram_mb / 1024) * 100
+with st.expander("Why is the RAM usage high?"):
+    st.write("""
+    1. **Library Overhead:** Importing heavy libraries like `tensorflow`, `keras`, or `statsmodels` allocates a significant amount of permanent memory. These resources stay in the RAM to keep the model engines ready for execution.
+    2. **Python Memory Management:** Python's garbage collector doesn't always return memory to the operating system immediately after a task is finished. It often holds onto that space for future operations to improve speed.
+    3. **Cumulative Usage:** Since Streamlit runs as a single process, the memory usage reflects everything loaded across all sessions. You can track the impact of a specific page by monitoring the memory jump after navigating to it.
+    """)
 
-st.metric(
-    label="RAM Usage", 
-    value=f"{ram_mb:.2f} MB",
-    delta=f"{ram_percent:.1f}% from maximal usage limit",
-    delta_color="inverse" if ram_mb > 800 else "normal"
-)
+st.divider()
+c1, c2 = st.columns(2)
 
-if st.button("Refresh Data"):
-    st.rerun()
+with c1:
+    if st.button("🔄 Refresh Status", use_container_width=True):
+        st.rerun()
 
-if st.button("Clear Cache"):
-    st.cache_data.clear()
-    st.cache_resource.clear()
-    st.success("Cache clean succeeded!")
+with c2:
+    if st.button("🧹 Soft Clear (Cache)", use_container_width=True):
+        st.cache_data.clear()
+        st.cache_resource.clear()
+        st.toast("Streamlit Cache Cleaned!")
