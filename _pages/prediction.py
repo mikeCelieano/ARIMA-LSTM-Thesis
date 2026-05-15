@@ -5,7 +5,7 @@ from datetime import timedelta
 from utils.data_loader import df_map, custom_bd
 from utils.features import prepare_inference_data
 from utils.metrics import get_dynamic_metrics
-from models.model_manager import ModelManager
+from models.model_manager import get_cached_model_manager
 from utils.visualizations import plot_forex_interactive, choose_sidebar_plot_range, _INTERACTIVE_CFG
 from utils.theme import inject_theme, render_hybrid_navbar
 
@@ -16,23 +16,44 @@ if 'predicted' not in st.session_state:
 if 'last_settings' not in st.session_state:
     st.session_state.last_settings = {}
 
+if 'pred_currency' not in st.session_state:
+    st.session_state.pred_currency = "USD/IDR"
+if 'pred_model' not in st.session_state:
+    st.session_state.pred_model = "ARIMA-LSTM Hybrid"
+if 'pred_mode' not in st.session_state:
+    st.session_state.pred_mode = "Tuning"
+
 # ─────────────────────────────────────────────
 # Sidebar Controls
 # ─────────────────────────────────────────────
 col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
 
+# with col1:
+#     currency = st.selectbox("💱 Currency", ["USD/IDR", "EUR/IDR", "GBP/IDR"])
+
+# with col2:
+#     selected_model = st.selectbox("⚙️ Model", ["ARIMA-LSTM Hybrid", "ARIMA", "LSTM"])
+
+# with col3:
+#     model_mode = st.selectbox("🧠 Mode", ["Tuning", "Non-Tuning"])
+
+# with col4:
+#     n_days_options = {"1D": 1, "1W": 7, "1M": 30, "3M": 90, "1Y": 365, "3Y": 1095, "5Y": 1825, "All": 9999}
+#     n_days_label = st.selectbox("📅 Range", list(n_days_options.keys()), index=1)
+#     n_days = n_days_options[n_days_label]
+
 with col1:
-    currency = st.selectbox("💱 Currency", ["USD/IDR", "EUR/IDR", "GBP/IDR"])
+    currency = st.selectbox("💱 Currency", ["USD/IDR", "EUR/IDR", "GBP/IDR"], key="pred_currency")
 
 with col2:
-    selected_model = st.selectbox("⚙️ Model", ["ARIMA-LSTM Hybrid", "ARIMA", "LSTM"])
+    selected_model = st.selectbox("⚙️ Model", ["ARIMA-LSTM Hybrid", "ARIMA", "LSTM"], key="pred_model")
 
 with col3:
-    model_mode = st.selectbox("🧠 Mode", ["Tuning", "Non-Tuning"])
+    model_mode = st.selectbox("🧠 Mode", ["Tuning", "Non-Tuning"], key="pred_mode")
 
 with col4:
     n_days_options = {"1D": 1, "1W": 7, "1M": 30, "3M": 90, "1Y": 365, "3Y": 1095, "5Y": 1825, "All": 9999}
-    n_days_label = st.selectbox("📅 Range", list(n_days_options.keys()), index=1)
+    n_days_label = st.selectbox("🗓 Range", list(n_days_options.keys()), key="pred_ndays")
     n_days = n_days_options[n_days_label]
 
 # Add navbar
@@ -74,7 +95,8 @@ if not st.session_state.predicted or settings_changed:
     with st.spinner("⏳ Running prediction..."):
         try:
             df_inf, exog_inf = prepare_inference_data(df)
-            manager = ModelManager(currency, mode=model_mode)
+            # manager = ModelManager(currency, mode=model_mode)
+            manager = get_cached_model_manager(currency, mode=model_mode)
             
             if manager.load_all_models():
                 st.session_state.all_results = manager.predict_all(df_inf, exog_inf)

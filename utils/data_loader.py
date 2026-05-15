@@ -14,6 +14,7 @@ id_holidays = holidays.Indonesia(years=years)
 holiday_dates = pd.to_datetime(list(id_holidays.keys()))
 custom_bd = CustomBusinessDay(holidays=holiday_dates)
 
+@st.cache_data(ttl=3600)
 def load_local_fallback(currency_symbol):
     """Fungsi pembantu membaca data CSV lokal secara diam-diam jika API gagal."""
     file_map = {"USD": "data/usd_idr.csv", "EUR": "data/eur_idr.csv", "GBP": "data/gbp_idr.csv"}
@@ -39,6 +40,7 @@ def load_local_fallback(currency_symbol):
         logging.error(f"Gagal memuat file lokal untuk {currency_symbol}: {e}")
         return pd.DataFrame()
 
+@st.cache_data(ttl=3600)
 def fetch_forex_investing(base_curr):
     """
     Fungsi pengganti Alpha Vantage.

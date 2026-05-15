@@ -34,12 +34,20 @@ COLOR_MAP = {
     'GBP/IDR': '#a78bfa',
 }
 
+if 'eda_currency' not in st.session_state:
+    st.session_state.eda_currency = "USD/IDR"
+
 # ─────────────────────────────────────────────
 # Currency selector
 # ─────────────────────────────────────────────
-c_sel, _ = st.columns([1, 3])
 with c_sel:
-    currency = st.selectbox("Currency Pair", list(all_data.keys()), label_visibility="collapsed")
+    # Tambahkan parameter `key` agar sinkron dengan session state
+    currency = st.selectbox(
+        "Currency Pair", 
+        list(all_data.keys()), 
+        label_visibility="collapsed", 
+        key="eda_currency"
+    )
 
 df = all_data[currency].copy()
 accent = COLOR_MAP[currency]

@@ -7,13 +7,18 @@ import os
 
 # Mengamankan path import
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from models.model_manager import ModelManager
+from models.model_manager import ModelManager, get_cached_model_manager
 
 @st.cache_data(show_spinner=False, ttl=86400) 
 def get_dynamic_metrics(currency, df_target, exog_features, mode, model_name, test_days=30):
-    manager = ModelManager(currency, mode=mode)
+    # manager = ModelManager(currency, mode=mode)
     
-    if not manager.load_all_models():
+    # if not manager.load_all_models():
+    #     return None
+
+    manager = get_cached_model_manager(currency, mode=mode)
+    
+    if manager.arima is None:
         return None
 
     results = {model_name: [], 'Actual': []}

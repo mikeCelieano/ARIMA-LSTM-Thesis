@@ -3,6 +3,7 @@ import joblib
 from models.arima_model import ForexARIMA
 from models.lstm_model import ForexLSTM
 from models.hybrid_model import ForexHybrid
+import streamlit as st
 
 class ModelManager:
     """
@@ -75,3 +76,9 @@ class ModelManager:
         )
         
         joblib.dump(self.hybrid, os.path.join(self.model_dir, "hybrid.pkl"))    
+
+@st.cache_resource(show_spinner=False)
+def get_cached_model_manager(currency, mode="tuned"):
+    manager = ModelManager(currency, mode=mode)
+    manager.load_all_models()
+    return manager
