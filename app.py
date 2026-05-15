@@ -33,11 +33,13 @@ home_page = st.Page("_pages/home.py", title="Home", icon="🏠", url_path="home"
 guide_page = st.Page("_pages/guide.py", title="Guide", icon="💻", url_path="guide")
 prediction_page = st.Page("_pages/prediction.py", title="Prediction", icon="📈", url_path="prediction")
 eda_page = st.Page("_pages/eda.py", title="EDA & Insights", icon="📊", url_path="eda")
+monitor_page = st.Page("_pages/monitor.py", title="System Monitor", icon="🖥️", url_path="monitor")
 
 pg = st.navigation({
     "System": [gateway_page],
     "Main Menu": [home_page, guide_page],
-    "Analysis & Prediction": [prediction_page, eda_page]
+    "Analysis & Prediction": [prediction_page, eda_page],
+    "Server Status": [monitor_page]
 })
 
 pg.run()

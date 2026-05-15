@@ -140,6 +140,7 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
         f'<a href="#" data-target="prediction" class="gree-nav-item"><span class="gree-nav-icon">&#128302;</span><span>Prediction</span></a>'
         f'<a href="#" data-target="eda" class="gree-nav-item"><span class="gree-nav-icon">&#128202;</span><span>EDA &amp; Insights</span></a>'
         f'<a href="#" data-target="guide" class="gree-nav-item"><span class="gree-nav-icon">&#128214;</span><span>Guide</span></a>'
+        f'<a href="#" data-target="monitor" class="gree-nav-item"><span class="gree-nav-icon">&#128421;</span><span>System Monitor</span></a>'
         f'</nav>'
     )
 
