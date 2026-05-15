@@ -16,7 +16,6 @@ custom_bd = CustomBusinessDay(holidays=holiday_dates)
 
 @st.cache_data(ttl=3600)
 def load_local_fallback(currency_symbol):
-    """Fungsi pembantu membaca data CSV lokal secara diam-diam jika API gagal."""
     file_map = {"USD": "data/usd_idr.csv", "EUR": "data/eur_idr.csv", "GBP": "data/gbp_idr.csv"}
     try:
         df = pd.read_csv(file_map[currency_symbol])

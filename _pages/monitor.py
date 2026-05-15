@@ -58,11 +58,11 @@ st.divider()
 c1, c2 = st.columns(2)
 
 with c1:
-    if st.button("🔄 Refresh Status", use_container_width=True):
+    if st.button("Refresh Status", use_container_width=True):
         st.rerun()
 
 with c2:
-    if st.button("🧹 Soft Clear (Cache)", use_container_width=True):
+    if st.button("Clear Cache", use_container_width=True):
         st.cache_data.clear()
         st.cache_resource.clear()
         st.toast("Streamlit Cache Cleaned!")
