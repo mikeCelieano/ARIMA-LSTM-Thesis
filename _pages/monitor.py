@@ -1,6 +1,7 @@
 import streamlit as st
 import psutil
 import os
+import gc   
 from utils.theme import inject_theme, render_hybrid_navbar
 
 inject_theme()
@@ -55,7 +56,7 @@ with st.expander("Why is the RAM usage high?"):
     """)
 
 st.divider()
-c1, c2 = st.columns(2)
+c1, c2, c3 = st.columns(3)
 
 with c1:
     if st.button("Refresh Status", use_container_width=True):
@@ -66,3 +67,13 @@ with c2:
         st.cache_data.clear()
         st.cache_resource.clear()
         st.toast("Streamlit Cache Cleaned!")
+
+with c3:
+    if st.button("Clear All Data", use_container_width=True):
+        st.cache_data.clear()
+        st.cache_resource.clear()
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        gc.collect()
+        st.toast("All data cleared! App reset to initial state.")
+        st.rerun()
