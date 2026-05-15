@@ -8,7 +8,7 @@ from statsmodels.tsa.stattools import acf
 
 from utils.theme import inject_theme, render_hybrid_navbar, get_theme_colors, section_label, page_header
 from utils.data_loader import df_map
-from utils.visualizations import plot_macd, plot_rsi
+from utils.visualizations import plot_macd, plot_rsi, _INTERACTIVE_CFG
 
 inject_theme()
 render_hybrid_navbar(show_prediction_controls=False)
@@ -70,6 +70,7 @@ def _layout(height=450, title=""):
         hovermode="x unified",
         margin=dict(l=10, r=10, t=44 if title else 20, b=10),
         height=height,
+        dragmode='pan',
         legend=dict(
             bgcolor="rgba(0,0,0,0)",
             bordercolor=c['border'],
@@ -120,8 +121,7 @@ def insight_card(html: str):
 
 def plot_price_action(df: pd.DataFrame, color: str) -> go.Figure:
     """
-    Interactive OHLC Candlestick chart with an integrated range slider
-    so users can zoom into any sub-period without losing the overview.
+    Interactive OHLC Candlestick chart — smooth pan & zoom, no rangeslider.
     """
     fig = go.Figure(data=[go.Candlestick(
         x=df.index,
@@ -139,7 +139,7 @@ def plot_price_action(df: pd.DataFrame, color: str) -> go.Figure:
     layout = _layout(height=540, title="Price Action — OHLC Candlestick")
     layout.pop('_grid', None)
     layout['xaxis'] = dict(
-        rangeslider=dict(visible=True, thickness=0.07, bgcolor=c['bg_surface']),
+        rangeslider=dict(visible=False),
         type='date',
         showgrid=True,
         gridcolor=c['plot_grid'],
@@ -374,7 +374,7 @@ with tab1:
     )
     section_label("Interactive Candlestick — OHLC Price Chart")
     fig_action = plot_price_action(df, accent)
-    st.plotly_chart(fig_action, use_container_width=True, config={"displayModeBar": True})
+    st.plotly_chart(fig_action, use_container_width=True, config=_INTERACTIVE_CFG)
 
 # ─────────────────────────────────────────────
 # TAB 2 — Trend & Momentum
@@ -387,7 +387,7 @@ with tab2:
     )
     section_label("Close Price with 20 & 50-Period Simple Moving Average")
     fig_sma, fig_acf = plot_trend_momentum(df, accent)
-    st.plotly_chart(fig_sma, use_container_width=True, config={"displayModeBar": False})
+    st.plotly_chart(fig_sma, use_container_width=True, config=_INTERACTIVE_CFG)
 
     st.markdown("")
     section_label("Autocorrelation Function (ACF) — How Much Does Today's Price Depend on the Past?")
@@ -398,7 +398,7 @@ with tab2:
         "all lags highly significant, confirming the series is <b>non-stationary</b>. ARIMA-family models handle this "
         "by differencing the series before fitting."
     )
-    st.plotly_chart(fig_acf, use_container_width=True, config={"displayModeBar": False})
+    st.plotly_chart(fig_acf, use_container_width=True, config=_INTERACTIVE_CFG)
 
 # ─────────────────────────────────────────────
 # TAB 3 — Volatility
@@ -412,7 +412,7 @@ with tab3:
     )
     section_label("Bollinger Bands — 20-Period SMA ± 2 Standard Deviations")
     fig_bb, fig_rstd = plot_volatility(df, accent)
-    st.plotly_chart(fig_bb, use_container_width=True, config={"displayModeBar": False})
+    st.plotly_chart(fig_bb, use_container_width=True, config=_INTERACTIVE_CFG)
 
     st.markdown("")
     section_label("30-Day Rolling Std Dev of Daily Returns — Recent Market Risk")
@@ -423,7 +423,7 @@ with tab3:
         "the model is operating inside a high-volatility regime helps calibrate how wide the prediction intervals "
         "should be."
     )
-    st.plotly_chart(fig_rstd, use_container_width=True, config={"displayModeBar": False})
+    st.plotly_chart(fig_rstd, use_container_width=True, config=_INTERACTIVE_CFG)
 
 # ─────────────────────────────────────────────
 # TAB 4 — Distribution & Stationarity
@@ -439,7 +439,7 @@ with tab4:
     )
     section_label("Daily Returns — Histogram with KDE and Normal Reference Curve")
     fig_hist, fig_box = plot_distribution(df, accent)
-    st.plotly_chart(fig_hist, use_container_width=True, config={"displayModeBar": False})
+    st.plotly_chart(fig_hist, use_container_width=True, config=_INTERACTIVE_CFG)
 
     st.markdown("")
     section_label("Calendar Seasonality — Daily Returns by Day of the Week")
@@ -450,7 +450,7 @@ with tab4:
         "If any day shows a consistently different median or spread, it is evidence of <i>weekly seasonality</i> — "
         "useful context when interpreting model errors that cluster on specific days."
     )
-    st.plotly_chart(fig_box, use_container_width=True, config={"displayModeBar": False})
+    st.plotly_chart(fig_box, use_container_width=True, config=_INTERACTIVE_CFG)
 
 # ─────────────────────────────────────────────
 # TAB 5 — Technical Indicators
