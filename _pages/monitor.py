@@ -19,7 +19,7 @@ ram_percent = (ram_mb / 1024) * 100
 st.metric(
     label="RAM Usage", 
     value=f"{ram_mb:.2f} MB",
-    delta=f"{ram_percent:.1f}% from limit",
+    delta=f"{ram_percent:.1f}% from maximal usage limit",
     delta_color="inverse" if ram_mb > 800 else "normal"
 )
 
