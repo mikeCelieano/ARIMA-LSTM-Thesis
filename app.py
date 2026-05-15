@@ -1,6 +1,5 @@
 import streamlit as st
 
-# 1. WAJIB: Perintah Streamlit pertama di file entry point
 st.set_page_config(
     page_title="BAM Board | Forex Prediction",
     page_icon="🪙",
@@ -45,12 +44,11 @@ st.markdown("""
     <div id="gree-overlay"></div>
 """, unsafe_allow_html=True)
 
-# 2. Definisi Halaman (Atur judul dan ikon di sini)
-home_page = st.Page("_pages/home.py", title="Home", icon="🏠", default=True)
-guide_page = st.Page("_pages/guide.py", title="Guide", icon="💻")
-prediction_page = st.Page("_pages/prediction.py", title="Prediction", icon="📈")
-eda_page = st.Page("_pages/eda.py", title="EDA & Insights", icon="📊")
-# 3. Navigasi
+home_page = st.Page("_pages/home.py", title="Home", icon="🏠", url_path="home", default=True)
+guide_page = st.Page("_pages/guide.py", title="Guide", icon="💻", url_path="guide")
+prediction_page = st.Page("_pages/prediction.py", title="Prediction", icon="📈", url_path="prediction")
+eda_page = st.Page("_pages/eda.py", title="EDA & Insights", icon="📊", url_path="eda")
+
 pg = st.navigation({
     "Main Menu": [home_page, guide_page],
     "Analysis & Prediction": [prediction_page, eda_page]
