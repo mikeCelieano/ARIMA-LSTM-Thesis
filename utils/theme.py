@@ -374,19 +374,20 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
                         var a = nativeLinks[i];
                         var href = a.getAttribute('href');
                         
-                        if (href) {
-                            if (href.endsWith('/' + targetPage)) {
+                        if (href) {{
+                            // Sekarang Home disamakan dengan page lain. 
+                            if (href.endsWith('/' + targetPage)) {{
                                 a.click(); 
                                 clicked = true;
                                 break;
-                            }
-                        }
+                            }}
+                        }}
                     }}
                     
                     // Fallback: Jika tombol tidak ditemukan, paksa pindah URL ke path yang benar
-                    if (!clicked) {
+                    if (!clicked) {{
                         parentWin.location.assign('/' + targetPage);
-                    }
+                    }}
                 }});
             }});
         }})();
