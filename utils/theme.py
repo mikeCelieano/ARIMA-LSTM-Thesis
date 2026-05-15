@@ -316,48 +316,30 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
         (function() {{
             var doc = window.parent.document;
 
-            // Inject font once
             if (!doc.getElementById('gree-font')) {{
                 var lnk = doc.createElement('link');
-                lnk.id = 'gree-font';
-                lnk.rel = 'stylesheet';
-                lnk.href = {json.dumps(FONT_URL)};
+                lnk.id = 'gree-font'; lnk.rel = 'stylesheet'; lnk.href = {json.dumps(FONT_URL)};
                 doc.head.appendChild(lnk);
             }}
 
-            // Inject / update CSS
             var style = doc.getElementById('gree-styles');
             if (!style) {{
-                style = doc.createElement('style');
-                style.id = 'gree-styles';
+                style = doc.createElement('style'); style.id = 'gree-styles';
                 doc.head.appendChild(style);
             }}
             style.textContent = {json.dumps(css)};
 
-            // Remove old navbar
             var old = doc.getElementById('gree-navbar');
             if (old) old.remove();
 
-            // Inject new navbar
             var el = doc.createElement('div');
             el.id = 'gree-navbar';
             el.innerHTML = {json.dumps(navbar_html)};
             doc.body.prepend(el);
 
-            // Grab fresh references
             var btn = doc.getElementById('gree-hamburger-btn');
             var sidebar = doc.getElementById('gree-sidebar');
             var backdrop = doc.getElementById('gree-backdrop');
-
-            if (!btn || !sidebar || !backdrop) return;
-
-            // Restore previous open state
-            try {{
-                if (window.parent.localStorage.getItem('gree-sidebar-open') === '1') {{
-                    sidebar.classList.add('is-open');
-                    backdrop.classList.add('is-open');
-                }}
-            }} catch(e) {{}}
 
             function closeSidebar() {{
                 sidebar.classList.remove('is-open');
@@ -374,7 +356,8 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
 
             backdrop.addEventListener('click', closeSidebar);
 
-            // LOGIKA NAVIGASI FINAL (BULLETPROOF)
+            // LOGIKA NAVIGASI ROBUST PUPPETEER
+           // LOGIKA NAVIGASI SETARA (SEMUA PAGE DIPERLAKUKAN SAMA)
             sidebar.querySelectorAll('.gree-nav-item').forEach(function(link) {{
                 link.addEventListener('click', function(e) {{
                     e.preventDefault(); e.stopPropagation();
@@ -384,7 +367,7 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
                     var parentWin = window.parent;
                     var parentDoc = parentWin.document;
                     
-                    // KUNCI: Hanya cari tautan di dalam sidebar asli Streamlit
+                    // Hanya cari di dalam sidebar asli Streamlit
                     var nativeLinks = parentDoc.querySelectorAll('[data-testid="stSidebarNavLink"]');
                     var clicked = false;
                     
@@ -392,24 +375,17 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
                         var a = nativeLinks[i];
                         var href = a.getAttribute('href') || '';
                         
-                        var isMatch = false;
-                        if (targetPage === 'home') {{
-                            // Streamlit memaksa page pertama menjadi '/'
-                            isMatch = (href === '/' || href.endsWith('/home'));
-                        }} else {{
-                            isMatch = href.endsWith('/' + targetPage);
-                        }}
-                        
-                        if (isMatch) {{
-                            a.click(); // Klik secara gaib menggunakan React Router Streamlit
+                        // KARENA HOME SEKARANG SAMA DENGAN PAGE LAIN, KITA CUKUP CARI AKHIRANNYA SAJA!
+                        if (href.endsWith('/' + targetPage)) {{
+                            a.click(); // Klik tombol aslinya
                             clicked = true;
                             break;
                         }}
                     }}
                     
-                    // Fallback aman
+                    // Fallback jika terjadi error
                     if (!clicked) {{
-                        parentWin.location.assign(targetPage === 'home' ? '/' : '/' + targetPage);
+                        parentWin.location.assign('/' + targetPage);
                     }}
                 }});
             }});
