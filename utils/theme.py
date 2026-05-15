@@ -263,7 +263,7 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
         f'.gree-control-badge{{background:{colors["bg_surface"]};border:1px solid {colors["border"]};'
         f'border-radius:6px;padding:.35rem .75rem;font-size:.78rem;color:{colors["txt2"]};font-weight:500}}'
 
-        # Sidebar — HIDDEN by default, slides in when .is-open is added
+        # Sidebar
         f'.gree-nav-sidebar{{position:fixed;left:0;top:60px;bottom:0;width:240px;'
         f'background:{colors["bg_surface"]};border-right:1px solid {colors["border_light"]};'
         f'transform:translateX(-100%);transition:transform .3s cubic-bezier(.4,0,.2,1);'
@@ -271,7 +271,7 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
         f'box-shadow:4px 0 20px rgba(0,0,0,0.3)}}'
         f'.gree-nav-sidebar.is-open{{transform:translateX(0)}}'
 
-        # Backdrop — appears with sidebar
+        # Backdrop
         f'.gree-backdrop{{position:fixed;top:60px;left:0;right:0;bottom:0;'
         f'background:rgba(0,0,0,0.4);opacity:0;visibility:hidden;'
         f'transition:opacity .3s, visibility .3s;z-index:99997}}'
@@ -280,15 +280,12 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
         # Nav items
         f'.gree-nav-item{{display:flex;align-items:center;gap:1rem;padding:.9rem 1.4rem;'
         f'color:{colors["txt2"]};text-decoration:none;font-family:"DM Sans",sans-serif;'
-        f'font-size:.95rem;transition:all .2s;border-left:3px solid transparent;cursor:pointer}}'
+        f'font-size:0.95rem;transition:all 0.2s;border-left:3px solid transparent;cursor:pointer}}'
         f'.gree-nav-item:hover{{background:{colors["bg_elevated"]};color:#00d4aa;border-left-color:#00d4aa}}'
         f'.gree-nav-icon{{font-size:1.3rem;min-width:24px;text-align:center}}'
 
-        # Main content: never shifts, sidebar overlays
-        f'[data-testid="stAppViewContainer"]>.main{{margin-top:60px!important;'
-        f'padding:1.5rem 2rem!important}}'
+        f'[data-testid="stAppViewContainer"]>.main{{margin-top:60px!important;padding:1.5rem 2rem!important}}'
 
-        # Mobile
         f'@media (max-width: 768px) {{'
         f'  .gree-prediction-controls {{ display: none !important; }}'
         f'  .gree-brand {{ font-size: 1.1rem; }}'
@@ -297,7 +294,6 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
         f'}}'
     )
 
-    # PERUBAHAN 1: Href diganti menjadi #, dan penambahan data-target
     navbar_html = (
         f'<div class="gree-top-bar">'
         f'<div class="gree-top-bar-left">'
@@ -320,89 +316,57 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
         (function() {{
             var doc = window.parent.document;
 
-            // Inject font once
             if (!doc.getElementById('gree-font')) {{
                 var lnk = doc.createElement('link');
-                lnk.id = 'gree-font';
-                lnk.rel = 'stylesheet';
-                lnk.href = {json.dumps(FONT_URL)};
+                lnk.id = 'gree-font'; lnk.rel = 'stylesheet'; lnk.href = {json.dumps(FONT_URL)};
                 doc.head.appendChild(lnk);
             }}
 
-            // Inject / update CSS
             var style = doc.getElementById('gree-styles');
             if (!style) {{
-                style = doc.createElement('style');
-                style.id = 'gree-styles';
+                style = doc.createElement('style'); style.id = 'gree-styles';
                 doc.head.appendChild(style);
             }}
             style.textContent = {json.dumps(css)};
 
-            // Remove old navbar
             var old = doc.getElementById('gree-navbar');
             if (old) old.remove();
 
-            // Inject new navbar
             var el = doc.createElement('div');
             el.id = 'gree-navbar';
             el.innerHTML = {json.dumps(navbar_html)};
             doc.body.prepend(el);
 
-            // Grab fresh references
             var btn = doc.getElementById('gree-hamburger-btn');
             var sidebar = doc.getElementById('gree-sidebar');
             var backdrop = doc.getElementById('gree-backdrop');
 
-            if (!btn || !sidebar || !backdrop) {{
-                console.error('[BAM] Navbar elements missing');
-                return;
-            }}
-
-            // Restore previous open state
-            try {{
-                if (window.parent.localStorage.getItem('gree-sidebar-open') === '1') {{
-                    sidebar.classList.add('is-open');
-                    backdrop.classList.add('is-open');
-                }}
-            }} catch(e) {{}}
-
-            function toggleSidebar() {{
-                var isOpen = sidebar.classList.toggle('is-open');
-                backdrop.classList.toggle('is-open', isOpen);
-                try {{
-                    window.parent.localStorage.setItem('gree-sidebar-open', isOpen ? '1' : '0');
-                }} catch(e) {{}}
-            }}
-
             function closeSidebar() {{
                 sidebar.classList.remove('is-open');
                 backdrop.classList.remove('is-open');
-                try {{
-                    window.parent.localStorage.setItem('gree-sidebar-open', '0');
-                }} catch(e) {{}}
+                try {{ window.parent.localStorage.setItem('gree-sidebar-open', '0'); }} catch(e) {{}}
             }}
 
             btn.addEventListener('click', function(e) {{
-                e.preventDefault();
-                e.stopPropagation();
-                toggleSidebar();
+                e.preventDefault(); e.stopPropagation();
+                var isOpen = sidebar.classList.toggle('is-open');
+                backdrop.classList.toggle('is-open', isOpen);
+                try {{ window.parent.localStorage.setItem('gree-sidebar-open', isOpen ? '1' : '0'); }} catch(e) {{}}
             }});
 
             backdrop.addEventListener('click', closeSidebar);
 
-            // PERUBAHAN 2: Logika Navigasi "Puppeteer" 
+            // LOGIKA NAVIGASI ROBUST PUPPETEER
             sidebar.querySelectorAll('.gree-nav-item').forEach(function(link) {{
                 link.addEventListener('click', function(e) {{
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    // Tutup laci sidebar terlebih dahulu saat menu diklik
+                    e.preventDefault(); e.stopPropagation();
                     closeSidebar();
 
                     var targetPage = this.getAttribute('data-target');
-                    var parentDoc = window.parent.document;
+                    var parentWin = window.parent;
+                    var parentDoc = parentWin.document;
                     
-                    // Cari semua elemen tautan asli di halaman utama Streamlit
+                    // Mencari tautan asli Streamlit di Sidebar yang kita sembunyikan
                     var nativeLinks = parentDoc.querySelectorAll('a');
                     var clicked = false;
                     
@@ -411,26 +375,24 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
                         var href = a.getAttribute('href');
                         
                         if (href) {{
-                            // Cocokkan URL bawaan dengan target (contoh: '/eda')
-                            var isMatch = false;
-                            if (targetPage === 'home') {{
-                                isMatch = (href.endsWith('/home') || href === '/');
-                            }} else {{
-                                isMatch = href.endsWith('/' + targetPage);
-                            }}
+                            // Logika Pencocokan Cerdas:
+                            // Jika target adalah Home, cek apakah href-nya adalah "/" atau mengandung "/home"
+                            var isHomeMatch = (targetPage === 'home' && (href === '/' || href.endsWith('/home')));
+                            // Untuk halaman lain, cek apakah href-nya berakhir dengan nama halamannya
+                            var isOtherMatch = (href.endsWith('/' + targetPage));
                             
-                            // Jika rute ketemu, klik tombol asli tersebut!
-                            if (isMatch) {{
-                                a.click();
+                            if (isHomeMatch || isOtherMatch) {{
+                                a.click(); // Pemicu navigasi asli Streamlit
                                 clicked = true;
                                 break;
                             }}
                         }}
                     }}
                     
-                    // Fallback: Jika tombol gagal ditemukan, paksa browser pindah secara mandiri
+                    // Jika gagal menemukan tombol asli (fallback), paksa pindah URL
                     if (!clicked) {{
-                        parentDoc.location.href = '/' + (targetPage === 'home' ? '' : targetPage);
+                        var fallbackPath = (targetPage === 'home') ? '/home' : '/' + targetPage;
+                        parentWin.location.assign(fallbackPath);
                     }}
                 }});
             }});
