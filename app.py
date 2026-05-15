@@ -44,7 +44,7 @@ st.markdown("""
     <div id="gree-overlay"></div>
 """, unsafe_allow_html=True)
 
-home_page = st.Page("_pages/home.py", title="Home", icon="🏠", url_path="home", default=True)
+home_page = st.Page("_pages/home.py", title="Home", icon="🏠", url_path="home")
 guide_page = st.Page("_pages/guide.py", title="Guide", icon="💻", url_path="guide")
 prediction_page = st.Page("_pages/prediction.py", title="Prediction", icon="📈", url_path="prediction")
 eda_page = st.Page("_pages/eda.py", title="EDA & Insights", icon="📊", url_path="eda")

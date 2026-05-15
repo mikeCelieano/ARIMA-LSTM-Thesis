@@ -366,7 +366,7 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
                     var parentWin = window.parent;
                     var parentDoc = parentWin.document;
                     
-                    // Mencari tautan asli Streamlit di Sidebar yang kita sembunyikan
+                    // Mencari tautan asli di Sidebar tersembunyi
                     var nativeLinks = parentDoc.querySelectorAll('a');
                     var clicked = false;
                     
@@ -374,26 +374,19 @@ def render_hybrid_navbar(show_prediction_controls=False, currency="USD/IDR", mod
                         var a = nativeLinks[i];
                         var href = a.getAttribute('href');
                         
-                        if (href) {{
-                            // Logika Pencocokan Cerdas:
-                            // Jika target adalah Home, cek apakah href-nya adalah "/" atau mengandung "/home"
-                            var isHomeMatch = (targetPage === 'home' && (href === '/' || href.endsWith('/home')));
-                            // Untuk halaman lain, cek apakah href-nya berakhir dengan nama halamannya
-                            var isOtherMatch = (href.endsWith('/' + targetPage));
-                            
-                            if (isHomeMatch || isOtherMatch) {{
-                                a.click(); // Pemicu navigasi asli Streamlit
+                        if (href) {
+                            if (href.endsWith('/' + targetPage)) {
+                                a.click(); 
                                 clicked = true;
                                 break;
-                            }}
-                        }}
+                            }
+                        }
                     }}
                     
-                    // Jika gagal menemukan tombol asli (fallback), paksa pindah URL
-                    if (!clicked) {{
-                        var fallbackPath = (targetPage === 'home') ? '/home' : '/' + targetPage;
-                        parentWin.location.assign(fallbackPath);
-                    }}
+                    // Fallback: Jika tombol tidak ditemukan, paksa pindah URL ke path yang benar
+                    if (!clicked) {
+                        parentWin.location.assign('/' + targetPage);
+                    }
                 }});
             }});
         }})();
