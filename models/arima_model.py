@@ -68,7 +68,7 @@ class ForexARIMA:
             y,
             exog=exog,
             order=order_to_use,
-            enforce_stationary=False,
+            enforce_stationarity=False,
             enforce_invertibility=False
         )
 
